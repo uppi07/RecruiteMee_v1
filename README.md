@@ -18,7 +18,7 @@ In addition, the platform supports influencers through a referral-based system w
 - Resume builder for creating ATS-friendly resumes  
 - Resume rewrite service to improve existing resumes  
 - Influencer referral tracking and payouts  
-- Secure payment integration (Razorpay, Stripe, PayPal)  
+- Secure payment integration (Razorpay)  
 - Multi-currency support (INR and USD)  
 - Admin dashboard for managing users, orders, and referrals  
 
@@ -36,7 +36,7 @@ In addition, the platform supports influencers through a referral-based system w
 - Authentication with JWT and Bcrypt  
 
 **Payments and Deployment**  
-- Razorpay, Stripe, PayPal  
+- Razorpay 
 - Vercel (Frontend Hosting)  
 - Render/Heroku (Backend Hosting)  
 
