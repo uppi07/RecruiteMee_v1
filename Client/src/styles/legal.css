@@ -1,0 +1,85 @@
+/* Client/src/styles/legal.css */
+
+/* ====== Glass Card Container ====== */
+.legal-page {
+  background: rgba(10,16,32,.94);
+  border-radius: 18px;
+  padding: 3.2rem 1.5rem 1.5rem; /* extra top padding for close btn */
+  box-shadow: 0 10px 28px rgba(0,0,0,.55);
+  border: 1px solid rgba(255,255,255,.08);
+  color: #eaf1ff;
+  font-family: "Inter", system-ui, sans-serif;
+  position: relative;
+  max-width: 800px;
+  margin: 2rem auto;
+  
+  /* key fix: card scrolls vertically if content > viewport */
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+/* ====== Close button (default desktop/tablet) ====== */
+.legal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: linear-gradient(135deg, #7aa5ff, #66f0c9);
+  color: #0b1220;
+  border: none;
+  border-radius: 999px;
+  padding: .4rem .9rem;
+  font-weight: 700;
+  font-size: .85rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4);
+  transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
+  z-index: 2000;
+}
+.legal-close:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(122,165,255,.35);
+}
+.legal-close:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+
+/* ====== Text Styling ====== */
+.legal-page h2 {
+  font-weight: 800;
+  color: #fff;
+  margin-top: .5rem;
+}
+.legal-page h5 {
+  font-weight: 700;
+  color: #66f0c9;
+}
+.legal-page p,
+.legal-page li {
+  color: #cbd5e1;
+  line-height: 1.55;
+  font-size: .95rem;
+}
+
+/* ====== MOBILE FIX ====== */
+@media (max-width: 576px) {
+  .legal-page {
+    padding: 2.5rem 1rem 1.25rem;
+    border-radius: 16px;
+    max-height: 80vh;       /* shorter, always scrollable */
+    overflow-y: auto;       /* scroll inside card */
+  }
+
+  /* Close button → fixed fab for guaranteed visibility */
+  .legal-close {
+    position: fixed;
+    top: auto;
+    right: calc(14px + env(safe-area-inset-right));
+    bottom: calc(14px + env(safe-area-inset-bottom));
+    padding: .65rem 1.1rem;
+    font-size: .9rem;
+    border-radius: 999px;
+    box-shadow: 0 10px 22px rgba(0,0,0,.55);
+    opacity: 0.95;
+  }
+}

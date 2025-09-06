@@ -1,0 +1,22 @@
+# Node
+Client/node_modules/
+Server/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Builds
+Client/dist/
+
+# Server uploads & logs
+Server/uploads/
+Server/*.log
+
+# Env / secrets
+*.env
+Client/.env*
+Server/.env*
+
+# Mac / editor junk
+.DS_Store
+*.swp

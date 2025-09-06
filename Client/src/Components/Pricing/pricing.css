@@ -1,0 +1,252 @@
+/* Client/src/Components/Pricing/pricing.css */
+
+/* ===============================
+   Pricing Page Styles
+   =============================== */
+
+.pricing-page {
+  background: radial-gradient(circle at top, #0b1220, #0f172a 60%, #0b1220 100%);
+  min-height: 100vh;
+  color: #eaf1ff;
+  font-family: "Inter", system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+.pricing-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 0.35rem;
+  letter-spacing: .2px;
+}
+
+.pricing-subtitle {
+  font-size: 1.05rem;
+  color: #aab6d6 !important;
+  margin-bottom: 1.25rem;
+}
+
+/* ---------- Sale banner (mobile-first) ---------- */
+.sale-banner{
+  display: grid;
+  gap: .6rem;
+  grid-template-columns: 1fr;
+  background: rgba(16,24,46,.9);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  padding: .8rem .9rem;
+  box-shadow: 0 8px 18px rgba(0,0,0,.45);
+}
+.sale-left{ display:flex; flex-wrap:wrap; align-items:center; gap:.45rem .6rem; }
+.sale-badge{
+  background:#ef4444;
+  color:#fff;
+  border-radius: 999px;
+  padding:.25rem .6rem;
+  font-size:.8rem;
+  font-weight:800;
+}
+.sale-text{ color:#fff; font-size:.95rem; }
+.sale-text .muted{ color:#cbd5e1; }
+.sale-timer{ color:#fff; font-weight:700; }
+.timer-chip{
+  display:inline-block; margin-left:.35rem;
+  padding:.25rem .5rem; border-radius:10px;
+  background: rgba(122,165,255,.2);
+  border:1px solid rgba(122,165,255,.35);
+}
+
+/* On wider screens, align left/right */
+@media (min-width: 768px){
+  .sale-banner{
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: .9rem 1rem;
+  }
+}
+
+/* Currency line */
+.currency-line{
+  color:#cbd5e1; font-size:.9rem; margin: .9rem 0 1rem;
+}
+
+/* ---------- Cards layout ---------- */
+.pricing-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 768px){
+  .pricing-cards{
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 1.25rem;
+  }
+}
+@media (min-width: 1100px){
+  .pricing-cards{
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+}
+
+/* ---------- Card base ---------- */
+.pricing-card {
+  position: relative;
+  background: rgba(16, 24, 46, 0.92);
+  border-radius: 18px;
+  padding: 1.25rem 1.25rem 1.1rem;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+  overflow: hidden;
+}
+.pricing-card::after{
+  /* subtle inner gradient edge */
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background: radial-gradient(120% 120% at 100% 0%, rgba(122,165,255,.10), transparent 60%);
+}
+.pricing-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(122,165,255,0.25);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.55), 0 0 12px rgba(122,165,255,0.35);
+}
+
+/* header + badge (same for ALL cards) */
+.card-head{ display:flex; align-items:center; justify-content:space-between; gap:.5rem; }
+.pricing-card h3 {
+  color: #ffffff;
+  font-size: 1.12rem;
+  font-weight: 900;
+  margin: 0;
+  letter-spacing:.2px;
+}
+
+/* unified limited-time chip */
+.pill{
+  display:inline-flex; align-items:center; gap:.35rem;
+  padding:.28rem .6rem;
+  border-radius:999px;
+  font-size:.8rem;
+  font-weight:900;
+  letter-spacing:.15px;
+  color:#0b1220;
+  background: linear-gradient(135deg, #ffe08a, #facc15);
+  border: 1px solid rgba(0,0,0,.15);
+  box-shadow: 0 4px 10px rgba(250,204,21,.25);
+}
+.pill-warn{ /* keep selector for compatibility */ }
+
+/* description */
+.card-desc{ color:#aab6d6; font-size:.95rem; margin:.55rem 0 .85rem; }
+
+/* Price block */
+.price{
+  display:flex; align-items:baseline; gap:.55rem;
+  margin:.25rem 0 .55rem;
+}
+.price .mrp{ color:#94a3b8; opacity:.9; text-decoration: line-through; }
+.price .now{ font-size:1.5rem; font-weight:900; color:#fff; letter-spacing:.2px; }
+.price .unit{ color:#9fb0cc; font-size:.9rem; }
+
+.price.free{ color:#66f0c9; font-weight:900; font-size:1.5rem; }
+
+.save{ color:#9fb0cc; margin: 0 0 .9rem; }
+
+/* ---------- Actions (same CTA style for both cards) ---------- */
+.actions{ display:flex; gap:.5rem; flex-wrap:wrap; }
+
+/* Force a unified gradient button look no matter btn variant used */
+.pricing-card .primary-cta{
+  width: 100%;
+  border-radius: 999px !important;
+  padding: .72rem 1.2rem !important;
+  font-weight: 900 !important;
+  letter-spacing:.2px;
+  border: 1px solid rgba(122,165,255,.35) !important;
+  color: #0b1220 !important;
+  background: linear-gradient(90deg, #7aa5ff, #66f0c9) !important;
+  box-shadow: 0 6px 16px rgba(122,165,255,.35);
+  transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+.pricing-card .primary-cta:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(122,165,255,.45);
+  filter: saturate(1.05);
+}
+.pricing-card .primary-cta:active{
+  transform: translateY(0);
+  box-shadow: 0 6px 16px rgba(122,165,255,.35);
+}
+
+/* On bigger screens keep the same look but don't force full width */
+@media (min-width: 768px){
+  .pricing-card .primary-cta{ width: auto; }
+}
+
+/* Post-page CTA row */
+.post-cta{
+  margin-top: 1.25rem;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: 1fr;
+  padding: .9rem;
+}
+.post-cta-text .strong{ color:#fff; font-weight:800; }
+.post-cta-text .sub{ color:#aab6d6; display:block; font-size:.9rem; margin-top:.1rem; }
+.post-cta-actions{ display:flex; gap:.5rem; flex-wrap:wrap; }
+@media (min-width: 768px){
+  .post-cta{ grid-template-columns: 1fr auto; align-items:center; padding: 1rem; }
+}
+
+/* Contact button */
+.contact-cta { margin: 1.25rem 0 2rem; text-align: center; }
+.contact-cta button {
+  border-radius: 999px;
+  padding: 0.55rem 1.5rem;
+  font-weight: 800;
+  background: linear-gradient(90deg, #7aa5ff, #66f0c9);
+  border: none;
+  color: #0b1220;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.contact-cta button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(122,165,255,0.4);
+}
+
+/* ---------- Modals (reuse glass styles from Home) ---------- */
+.glass-backdrop{
+  position: fixed; inset: 0; z-index: 1050;
+  background: rgba(0,0,20,.82); backdrop-filter: blur(10px);
+  display:flex; align-items:center; justify-content:center;
+}
+.glass-card{
+  background: rgba(14,22,44,.9);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  padding: 1.25rem;
+  width: min(95%, 520px);
+  color: #fff;
+  box-shadow: 0 12px 30px rgba(0,0,0,.55);
+}
+.glass-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:.75rem; }
+.glass-title{ font-size:1.15rem; font-weight:800; }
+.glass-close{ background:transparent; border:0; color:#cbd5e1; font-size:1.2rem; cursor:pointer; }
+.glass-input{
+  width:100%; background:#0a132a; border:1px solid #22314a; color:#fff;
+  border-radius:12px; padding:.65rem .85rem; margin-bottom:.8rem;
+}
+.glass-input.file{ padding:.55rem; }
+.actions .btn-ghost{
+  background:transparent; border:1px solid #7aa5ff; color:#7aa5ff; border-radius:999px; padding:.5rem 1rem;
+}
+.actions .btn-ghost:hover{ background:#7aa5ff; color:#0b1220; }
+
+/* Tiny phones */
+@media (max-width: 480px){
+  .glass-card{ padding:1rem; border-radius:16px; }
+  .actions{ flex-direction:column; }
+  .actions .btn, .actions .btn-ghost{ width:100%; }
+}

@@ -1,0 +1,143 @@
+
+
+:root{
+  /* brand + text system */
+  --accent:            #2563eb;
+  --auth-card-bg:      #ffffff;
+  --auth-text-strong:  #0f172a;  /* titles / labels */
+  --auth-text:         #1f2937;  /* body on white */
+  --auth-muted:        #475569;  /* helper text */
+  --auth-placeholder:  #94a3b8;
+}
+
+.log-page{
+  min-height: 100vh;
+  background: radial-gradient(70% 60% at 20% 0%, rgba(37,99,235,.08), transparent 60%),
+              linear-gradient(135deg,#0f172a,#1e293b);
+  display:flex; align-items:center; padding:24px 0;
+}
+
+.log-layout{
+  display:grid; grid-template-columns: 1fr 1.2fr; gap:24px;
+}
+@media (max-width: 991.98px){
+  .log-layout{ grid-template-columns: 1fr; }
+}
+
+.log-form-col, .log-carousel-col{ display:flex; flex-direction:column; }
+
+/* Card */
+.soft-card{
+  background: var(--auth-card-bg);
+  border: 0; border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(2, 8, 23, 0.12);
+  color: var(--auth-text);
+}
+
+/* --- TEXT COLORS (the important part) --- */
+.soft-card h1, .soft-card .display-5, .soft-card .h1{
+  color: var(--auth-text-strong);
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.soft-card h2, .soft-card h3, .soft-card .h2, .soft-card .h3{
+  color: var(--auth-text-strong);
+  font-weight: 700;
+}
+.soft-card p,
+.soft-card .lead{
+  color: var(--auth-muted);
+}
+.soft-card .text-muted{
+  color: var(--auth-muted) !important;
+  opacity: 1 !important;
+}
+.soft-card .form-label,
+.soft-card label{
+  color: var(--auth-text-strong);
+  font-weight: 600;
+}
+
+/* Links */
+.soft-card a{ color: var(--accent); text-decoration: none; }
+.soft-card a:hover{ text-decoration: underline; }
+
+/* Inputs */
+.form-control{
+  color: var(--auth-text-strong);
+  background: #fff;
+  border-color: #e2e8f0;
+  height: 44px;
+}
+.form-control:focus, .form-select:focus{
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 .2rem rgba(37,99,235,.15);
+}
+.form-control::placeholder{ color: var(--auth-placeholder); }
+
+/* Primary button */
+.btn-primary{ background: var(--accent); border-color: var(--accent); }
+.btn-primary:hover{ filter: brightness(1.03); }
+
+/* Toggle password */
+.toggle-pass{
+  position:absolute; right:10px; top:50%; transform: translateY(-50%);
+  border:0; background:transparent; font-size:1.05rem; line-height:1; cursor:pointer;
+}
+
+/* Carousel */
+.soft-card.p-0.overflow-hidden img{ display:block; }
+.carousel-caption{
+  background: rgba(0,0,0,.35);
+  border-radius: 12px;
+  padding: .5rem .75rem;
+}
+
+/* Trust pill under carousel */
+.trust-card{ padding:14px 16px; }
+.trust-dot{
+  width:12px; height:12px; border-radius:999px;
+  background:#66f0c9; box-shadow:0 0 0 6px rgba(102,240,201,.25);
+}
+
+/* Small helper row (register/forgot links) */
+.auth-links, .helper-links, .soft-card .small{
+  color: var(--auth-muted);
+}
+.auth-links a, .helper-links a{ color: var(--accent); }
+
+/* Make tiny radio/checkbox labels readable on white too */
+.form-check-label{ color: var(--auth-text); }
+
+/* Responsive spacing for small screens */
+@media (max-width: 575.98px){
+  .soft-card{ padding: 18px !important; }
+}
+/* === Scoped carousel controls (fix click-overlap) === */
+.auth-carousel { position: relative; }
+
+.auth-carousel .carousel-control-prev,
+.auth-carousel .carousel-control-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  bottom: auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(6px);
+  opacity: .9;
+  pointer-events: auto;
+}
+
+.auth-carousel .carousel-control-prev { left: 8px; }
+.auth-carousel .carousel-control-next { right: 8px; }
+
+.auth-carousel .carousel-control-prev:hover,
+.auth-carousel .carousel-control-next:hover { opacity: 1; }
+
+.auth-carousel .carousel-indicators [data-bs-target] {
+  width: 8px; height: 8px; border-radius: 999px;
+}
+.auth-carousel .carousel-caption { display: none !important; }

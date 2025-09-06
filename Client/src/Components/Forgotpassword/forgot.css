@@ -1,0 +1,104 @@
+:root {
+  --accent: #66f0c9;
+}
+
+.fr-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  display: flex;
+  align-items: center;
+  padding: 24px 0;
+}
+
+.fr-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 24px;
+}
+@media (max-width: 991.98px) {
+  .fr-layout { grid-template-columns: 1fr; }
+}
+
+.fr-form-col, .fr-carousel-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.soft-card {
+  background: #ffffff;
+  border: 0;
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(2, 8, 23, 0.12);
+}
+
+/* Toggle password button */
+.toggle-pass {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Carousel caption overlay */
+.carousel-caption {
+  background: rgba(0,0,0,.35);
+  border-radius: 12px;
+  padding: .5rem .75rem;
+}
+
+/* Trust card */
+.trust-card { padding: 14px 16px; }
+.trust-dot {
+  width: 12px; height: 12px; border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 6px rgba(102,240,201,.25);
+}
+
+/* Inputs focus */
+.form-control:focus, .form-select:focus {
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 .2rem rgba(37,99,235,.15);
+}
+
+/* Primary colors */
+.btn-primary { background: #2563eb; border-color: #2563eb; }
+.btn-outline-primary { color: #2563eb; border-color: #2563eb; }
+.btn-outline-primary:hover { background: #2563eb; color: #fff; }
+
+/* Indicators */
+.custom-indicators button {
+  width: 8px; height: 8px; border-radius: 999px;
+}
+/* === Scoped carousel controls (fix click-overlap) === */
+.auth-carousel { position: relative; }
+
+.auth-carousel .carousel-control-prev,
+.auth-carousel .carousel-control-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  bottom: auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: rgba(0,0,0,.35);
+  backdrop-filter: blur(6px);
+  opacity: .9;
+  pointer-events: auto;
+}
+
+.auth-carousel .carousel-control-prev { left: 8px; }
+.auth-carousel .carousel-control-next { right: 8px; }
+
+.auth-carousel .carousel-control-prev:hover,
+.auth-carousel .carousel-control-next:hover { opacity: 1; }
+
+.auth-carousel .carousel-indicators [data-bs-target] {
+  width: 8px; height: 8px; border-radius: 999px;
+}
+.auth-carousel .carousel-caption { display: none !important; }

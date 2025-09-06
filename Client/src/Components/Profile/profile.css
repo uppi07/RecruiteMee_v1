@@ -1,0 +1,184 @@
+/* ============================
+   Profile – Dark Glass Card
+   ============================ */
+:root{
+  --bg:        #0b1220;
+  --panel:     #0f1b2b;
+  --panel-2:   #122036;
+  --border:    #22314a;
+  --ink:       #eaf1ff;
+  --text:      #dfe7ff;
+  --muted:     #aab6d6;
+  --accent:    #66f0c9;     /* mint */
+  --accent-2:  #7aa5ff;     /* blue */
+  --radius:    20px;
+}
+
+/* Page bg */
+.profile-page{
+  min-height:100vh;
+  background: radial-gradient(120% 120% at 80% 10%, #0b1220 0%, #0b1220 30%, #0a1020 100%),
+              linear-gradient(135deg, #0f172a, #131b2e);
+  color: var(--text);
+}
+
+/* Card (glass panel) */
+.soft-card{
+  border-radius: var(--radius);
+  background: rgba(16, 27, 43, 0.86);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(100, 240, 201, 0.15);
+  color: var(--text);
+  overflow: hidden;
+  transition: box-shadow .25s ease, transform .15s ease;
+}
+.soft-card:hover{
+  box-shadow: 0 20px 60px rgba(2,8,23,.35);
+  transform: translateY(-1px);
+}
+
+/* Cover banner */
+.profile-cover{
+  height: 120px;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background:
+    radial-gradient(120% 120% at 85% 10%, rgba(102,240,201,.30) 0%, rgba(102,240,201,.08) 35%, transparent 70%),
+    linear-gradient(135deg, rgba(122,165,255,.18), rgba(122,165,255,.06));
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+/* Header */
+.profile-header{ margin-top:-60px; padding: 0 1.25rem; text-align:center; }
+.avatar-wrap{ display:grid; place-items:center; }
+.profile-avatar, .avatar-fallback{
+  width:120px; height:120px; border-radius:50%;
+  border: 4px solid var(--panel);
+  outline: 3px solid rgba(102,240,201,.35);   /* accent ring */
+  box-shadow: 0 12px 28px rgba(2,8,23,.5);
+  background:#0f172a;
+}
+.avatar-fallback{
+  display:grid; place-items:center; font-weight:700; color:#fff; font-size:1.4rem;
+}
+
+.profile-header h2{ color:#fff; font-weight:700; }
+.profile-header .text-muted{ color: var(--muted) !important; }
+
+/* Body */
+.profile-body{ padding: 0 1.25rem 1.5rem; }
+.info-item{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:.9rem 1rem;
+  border:1px dashed var(--border);
+  border-radius:12px;
+  background: var(--panel-2);
+}
+.info-item .label{ color: var(--muted); font-weight:600; letter-spacing:.2px; }
+.info-item .value{ color:#fff; font-weight:700; }
+
+/* Stats */
+.stats-strip{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap:12px;
+}
+.stat{
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:.9rem 1rem;
+  background: linear-gradient(180deg, rgba(23,34,55,.9), rgba(16,27,43,.9));
+  text-align:center;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.stat:hover{
+  transform: translateY(-2px);
+  border-color: rgba(102,240,201,.35);
+  box-shadow: 0 10px 24px rgba(2,8,23,.35);
+}
+.stat-num{ font-size:1.25rem; font-weight:800; color:#fff; }
+.stat-label{ font-size:.85rem; color: var(--muted); }
+
+/* Buttons (better contrast) */
+.profile-card .btn{
+  --ring: 0 0 0 0 rgba(102,240,201,.0);
+  box-shadow: var(--ring);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease, background .12s ease, color .12s ease;
+}
+.profile-card .btn:focus{
+  --ring: 0 0 0 4px rgba(102,240,201,.22);
+  outline: none;
+  box-shadow: var(--ring);
+}
+.profile-card .btn-primary{
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
+  border: none;
+  color: #0b1220;
+  font-weight:700;
+}
+.profile-card .btn-primary:hover{ filter: brightness(.95); color:#0b1220; }
+
+.profile-card .btn-outline-primary{
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+  background: transparent;
+}
+.profile-card .btn-outline-primary:hover{
+  background: var(--accent-2);
+  color:#0b1220;
+}
+
+.profile-card .btn-outline-secondary{
+  border-color: var(--border);
+  color: #eaf1ff;
+  background: rgba(255,255,255,.03);
+}
+.profile-card .btn-outline-secondary:hover{
+  border-color: rgba(102,240,201,.45);
+  color:#0b1220;
+  background: var(--accent);
+}
+
+/* Responsive padding */
+@media (min-width: 992px){
+  .profile-body{ padding: 0 2rem 2rem; }
+}
+
+/* Accessibility: improve link contrast inside card if any */
+.profile-card a{ color: var(--accent); }
+.profile-card a:hover{ color:#9af6de; }
+
+
+/* --- Make name clearly visible --- */
+.profile-header h2{
+  position: relative;
+  display: inline-block;
+  margin-top: .85rem;
+  padding: 2px 10px;                 /* room for the chip */
+  border-radius: 12px;
+  color: #ffffff !important;         /* hard white */
+  font-weight: 800;
+  letter-spacing: .2px;
+  line-height: 1.2;
+  text-shadow: 0 2px 12px rgba(0,0,0,.6), 0 0 1px rgba(0,0,0,.8);
+}
+
+/* glass chip behind the name (no JSX changes needed) */
+.profile-header h2::before{
+  content: "";
+  position: absolute;
+  inset: -2px -8px;                  /* extends a bit around text */
+  border-radius: 14px;
+  background: linear-gradient(180deg,
+              rgba(11,18,32,.65), rgba(11,18,32,.45));
+  border: 1px solid rgba(255,255,255,.08);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: -1;                       /* sits behind the text */
+}
+
+/* slightly bigger on larger screens */
+@media (min-width: 768px){
+  .profile-header h2{ font-size: 1.9rem; }
+}
+

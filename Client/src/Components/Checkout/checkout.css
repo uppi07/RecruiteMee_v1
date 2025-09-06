@@ -1,0 +1,126 @@
+/* Checkout page – dark gradient + soft cards + CTA button  */
+
+.checkout-page {
+  min-height: 100vh;
+  background: radial-gradient(1200px 800px at 20% -10%, #0f2240 0%, transparent 60%),
+              radial-gradient(1000px 700px at 100% 0%, #122a48 0%, transparent 55%),
+              #0a0f1c;
+  color: #eaf1ff;
+}
+
+.checkout-main h1 {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.soft-card {
+  background: rgba(18, 32, 54, 0.6);
+  border: 1px solid rgba(122, 165, 255, 0.12);
+  border-radius: 20px;
+  backdrop-filter: blur(6px);
+  transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+}
+.soft-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(122, 165, 255, 0.28);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+}
+
+/* Empty state block (centered) */
+.empty-state {
+  background: rgba(18, 32, 54, 0.55);
+  border: 1px dashed rgba(122, 165, 255, 0.35);
+  border-radius: 18px;
+  padding: 28px 24px;
+  text-align: center;
+}
+.empty-icon {
+  font-size: 32px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.empty-title {
+  margin: 0 0 4px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.empty-desc {
+  margin: 0 0 16px;
+  color: #b9c6e8;
+}
+
+/* Brand “accent” button */
+.btn-accent {
+  --btn-bg1: #7aa5ff;
+  --btn-bg2: #64f4ac;
+  --ring: 0 0 0 0 rgba(100, 244, 172, 0.0);
+
+  border: none;
+  border-radius: 14px;
+  padding: 10px 18px;
+  font-weight: 700;
+  color: #0a0f1c;
+  background-image: linear-gradient(90deg, var(--btn-bg1), var(--btn-bg2));
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+}
+.btn-accent:hover {
+  transform: translateY(-1px);
+  filter: saturate(1.07);
+  box-shadow: 0 10px 24px rgba(100, 244, 172, 0.25);
+}
+.btn-accent:active {
+  transform: translateY(0);
+}
+.btn-accent:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(100, 244, 172, 0.35);
+}
+.empty-cta {
+  min-width: 220px;
+}
+
+/* Make outline-light readable on dark card */
+.btn-outline-light {
+  border-color: rgba(234, 241, 255, 0.5) !important;
+  color: #eaf1ff !important;
+}
+.btn-outline-light:hover {
+  background: rgba(234, 241, 255, 0.08) !important;
+}
+
+/* Bootstrap alerts readability on dark bg */
+.alert-info {
+  background: rgba(122,165,255,0.12);
+  border-color: rgba(122,165,255,0.35);
+  color: #dfe7ff;
+}
+.alert-secondary {
+  background: rgba(200, 210, 230, 0.10);
+  border-color: rgba(200, 210, 230, 0.30);
+  color: #d9e2ff;
+}
+.alert-warning {
+  background: rgba(246, 210, 103, 0.12);
+  border-color: rgba(246, 210, 103, 0.45);
+  color: #ffe6a0;
+}
+/* keep your existing styles … add the tweaks below */
+
+/* Make info states clearly blue (was appearing red for some setups) */
+.checkout-page .alert-info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e3a8a;
+}
+
+/* Neutral secondary state */
+.checkout-page .alert-secondary {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #111827;
+}
+
+/* Ensure modal headings are visible even on soft-card */
+.checkout-page .modal-title {
+  color: #111 !important;
+}

@@ -1,0 +1,34 @@
+/* Client/src/Components/Layout/SiteFooter.css */
+
+.site-footer {
+  background-color: #0b1220; /* dark background */
+  color: #eaf1ff;           /* default text color */
+  padding: 3rem 1rem;
+}
+
+.site-footer h5,
+.site-footer h4,
+.site-footer strong {
+  color: #fff; /* make headings pure white */
+}
+
+.site-footer p,
+.site-footer a,
+.site-footer li,
+.site-footer span {
+  color: rgba(255, 255, 255, 0.8); /* lighter grey text */
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  color: #7aa5ff; /* brand blue hover */
+}
+
+.site-footer .copyright {
+  border-top: 1px solid #22314a;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}

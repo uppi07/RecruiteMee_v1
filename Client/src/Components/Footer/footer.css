@@ -1,0 +1,137 @@
+/* Client/src/Components/Footer/footer.css */
+
+/* ============================
+   Footer Styling (Dark + Glass)
+   ============================ */
+.rm-footer {
+  border-top: 1px solid rgba(255,255,255,.10);
+  background: linear-gradient(180deg, #0b1220, #0f172a);
+  font-size: 0.95rem;
+  color: #ffffff;
+  padding-top: 2rem;
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+}
+
+/* brand dot to match navbar */
+.brand-dot{
+  width:10px; height:10px; border-radius:50%;
+  display:inline-block; margin-right:.4rem;
+  background: radial-gradient(closest-side,#7aa5ff,#4d7cff);
+  box-shadow: 0 0 10px rgba(122,165,255,.7);
+}
+
+/* headings */
+.rm-footer h5,
+.rm-footer h6 {
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: .75rem;
+  letter-spacing: .2px;
+}
+
+/* layout breathing on desktop */
+.footer-grid { row-gap: 1.25rem; }
+
+/* link list */
+.footer-list {
+  display: grid;
+  gap: .35rem;
+  margin: 0;
+  padding: 0;
+}
+
+/* base link look */
+.footer-list a {
+  display: inline-block;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 6px 0;
+  position: relative;
+  transition: color .22s ease, padding .22s ease, background .22s ease, border-color .22s ease;
+}
+
+/* underline on hover (desktop) */
+.footer-list a::after {
+  content: "";
+  position: absolute; left: 0; bottom: -2px;
+  width: 0%; height: 2px;
+  background: #66f0c9;
+  transition: width .22s ease;
+}
+.footer-list a:hover {
+  color: #66f0c9;
+  padding-left: 6px;
+}
+.footer-list a:hover::after { width: 100%; }
+
+/* email chip */
+.email-pill{
+  padding: 6px 12px !important;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  color: #cfe3ff !important;
+}
+.email-pill:hover{
+  background: rgba(122,165,255,.16);
+  color: #fff !important;
+  padding-left: 14px !important;
+}
+
+/* bottom row */
+.footer-bottom{
+  margin-top: 1.25rem;
+  padding-top: .9rem;
+  border-top: 1px dashed rgba(255,255,255,.12);
+  display:flex; justify-content:center;
+}
+
+/* ============================
+   Mobile-first polish (≤768px)
+   - center everything
+   - glassy buttons for links
+   ============================ */
+@media (max-width: 767.98px){
+  .rm-footer{
+    text-align: center;
+  }
+
+  .footer-list{
+    gap: .5rem;
+  }
+
+  /* turn each footer link into a comfy touch target */
+  .footer-list li a{
+    display:block;
+    width: 100%;
+    padding: .7rem .9rem;
+    border-radius: 14px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+  }
+  .footer-list li a::after{ display:none; } /* hide underline when using glass bg */
+  .footer-list li a:hover{
+    background: rgba(122,165,255,.14);
+    color: #fff;
+    padding-left: .9rem; /* minimal nudge */
+  }
+
+  .email-pill{
+    width:100%;
+    text-align:center;
+    padding: .8rem 1rem !important;
+    border-radius: 14px;
+  }
+
+  .footer-bottom{
+    justify-content: center;
+    text-align: center;
+  }
+}
+
+/* tiny phones */
+@media (max-width: 360px){
+  .rm-footer { font-size: .94rem; }
+  .footer-list li a { padding: .65rem .8rem; }
+}
+

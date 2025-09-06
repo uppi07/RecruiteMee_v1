@@ -1,0 +1,103 @@
+:root {
+  --accent: #66f0c9;
+}
+
+/* Page bg + hero */
+.orders-page {
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  min-height: 100vh;
+}
+.orders-hero {
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+/* Soft card look */
+.soft-card {
+  border-radius: 16px !important;
+  box-shadow: 0 18px 40px rgba(2, 8, 23, 0.12);
+}
+
+/* Filters */
+.order-filters .btn-accent {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0b1220;
+  font-weight: 600;
+}
+.order-filters .btn-outline-light {
+  color: #e2e8f0;
+  border-color: rgba(255,255,255,.35);
+}
+.order-filters .btn-outline-light:hover {
+  color: #0b1220;
+  background: #e2e8f0;
+}
+
+/* Table styles */
+.table thead th {
+  font-weight: 700;
+}
+.table tbody td {
+  vertical-align: middle;
+}
+
+/* Status badges */
+.order-badge {
+  display: inline-block;
+  padding: .35rem .6rem;
+  border-radius: 999px;
+  font-size: .75rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.badge-warning { background: #fff7ed; color: #9a3412; border-color: #fed7aa; }
+.badge-info    { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+.badge-success { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+.badge-danger  { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+.badge-secondary { background: #f1f5f9; color: #334155; border-color: #e2e8f0; }
+
+/* Skeleton loader */
+.skeleton-row {
+  height: 54px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #eaeef3 25%, #f5f7fa 37%, #eaeef3 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  margin-bottom: 10px;
+}
+@keyframes shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* Primary buttons consistency */
+.btn-primary { background: #2563eb; border-color: #2563eb; }
+.btn-outline-primary { color: #2563eb; border-color: #2563eb; }
+.btn-outline-primary:hover { background: #2563eb; color: #fff; }
+
+/* (kept duplicates below to avoid style shifts in your app) */
+.order-badge { padding: 4px 8px; border-radius: 999px; font-size: 12px; }
+.badge-warning { background: #f6d267; color: #111; }
+.badge-info { background: #78b9ff; color: #111; }
+.badge-success { background: #66e5b8; color: #111; }
+.badge-danger { background: #ff7a8a; color: #111; }
+.badge-secondary { background: #aab6d6; color: #111; }
+
+.orders-hero { background: #0e1730; border-bottom: 1px solid rgba(122,165,255,.15); }
+.btn-accent { background: #7aa5ff; color: #0b1220; border: none; }
+.skeleton-row { height: 18px; background: rgba(255,255,255,0.08); border-radius: 8px; margin-bottom: 10px; }
+
+/* =========================
+   NEW: Darker file name chips
+   ========================= */
+.orders-table .file-link {
+  color: #0b1220 !important;           /* dark text */
+  background: #f8fafc;                 /* subtle light bg */
+  border-color: #cbd5e1;               /* soft border */
+}
+.orders-table .file-link:hover {
+  color: #0b1220 !important;
+  background: #eef2f7;
+  border-color: #94a3b8;
+  text-decoration: none;
+}
