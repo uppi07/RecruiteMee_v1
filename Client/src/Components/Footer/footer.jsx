@@ -53,7 +53,7 @@ export default function Footer() {
         {/* bottom line */}
         <div className="footer-bottom">
           <span className="small text-white-50">
-            Built with ♥ to help you get shortlisted.
+            Developed by Upendra Dommaraju
           </span>
         </div>
       </div>
