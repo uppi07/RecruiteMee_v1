@@ -1,4 +1,4 @@
-# RecruiteMee
+# RecruiteMee - upendra
 
 RecruiteMee is a SaaS platform built to help students and professionals create ATS-optimized resumes and improve their chances of being shortlisted by recruiters.  
 The platform provides tools for resume creation, resume rewriting, and influencer referral programs, while integrating secure payment options for both Indian and international users.  
