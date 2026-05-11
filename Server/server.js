@@ -1,8 +1,26 @@
 /* eslint-disable no-console */
-const dotenv = require('dotenv');
-dotenv.config();
-
 const path = require('path');
+const dns = require('node:dns');
+const dotenv = require('dotenv');
+
+// Load env from Server/.env first, then fallback to repo-root .env
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+
+const mongoDnsServers = String(process.env.MONGO_DNS_SERVERS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+if (mongoDnsServers.length > 0) {
+  try {
+    dns.setServers(mongoDnsServers);
+    console.log('[mongo] custom DNS resolvers:', mongoDnsServers);
+  } catch (e) {
+    console.warn('[mongo] invalid MONGO_DNS_SERVERS, using system DNS:', e.message);
+  }
+}
+
 const fs = require('fs');
 const express = require('express');
 const mongoose = require('mongoose');
@@ -106,6 +124,8 @@ const INF_REVIEW_BONUS = Number(process.env.INFLUENCER_REVIEW_BONUS || 50);
 const INF_ORDER_PRICE = Number(process.env.INFLUENCER_ORDER_PRICE || 150);
 const INF_MIN_REGS = Number(process.env.INFLUENCER_MIN_REGS || 50);
 const INF_MIN_BAL  = Number(process.env.INFLUENCER_MIN_BAL || 2500);
+const MONGO_URI_FALLBACK = String(process.env.MONGO_URI_FALLBACK || '').trim();
+const MONGO_SERVER_SELECTION_TIMEOUT_MS = Number(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || 10000);
 
 /* ---------- CORS allowlist (supports exact & wildcard patterns) ---------- */
 const RAW_ORIGINS = (CLIENT_ORIGINS || CLIENT_ORIGIN || '')
@@ -972,13 +992,6 @@ app.get("/influencer/payouts", auth, async (req, res) => {
 });
 
 /* --------------------------- Mail helpers -------------------------------- */
-async function createAndStoreOtp(email) {
-  const code = '' + Math.floor(100000 + Math.random() * 900000);
-  const codeHash = crypto.createHash('sha256').update(code).digest('hex');
-  await EmailOtp.updateMany({ email, used: false }, { $set: { used: true } });
-  await EmailOtp.create({ email, codeHash, expiresAt: new Date(Date.now() + OTP_TTL_MS) });
-  return code;
-}
 function htmlList(items = []) {
   return items.length ? `<ul>${items.map((s) => `<li>${s}</li>`).join('')}</ul>` : '';
 }
@@ -1076,7 +1089,7 @@ app.get('/', (_req, res) => res.json({ ok: true, name: 'RecruiteMee API', status
 app.get('/health', (_req, res) => res.json({ ok: true, status: 'up' }));
 app.post('/auth/logout', (_req, res) => res.json({ ok: true, message: 'Logged out' }));
 
-/* ----------------------- Registration + OTP flow -------------------------- */
+/* ----------------------- Registration (OTP disabled) ---------------------- */
 app.post('/register', async (req, res) => {
   try {
     const name = String(req.body.name || '').trim();
@@ -1093,13 +1106,11 @@ app.post('/register', async (req, res) => {
       return res.status(400).json({ ok: false, message: 'Password must be at least 8 characters.' });
     }
 
-    // If a verified user exists -> block
-    const existingVerified = await User.findOne({ email, isVerified: true }).lean();
-    if (existingVerified) {
+    const existingUser = await User.findOne({ email }).lean();
+    if (existingUser) {
       return res.status(409).json({ ok: false, message: 'Email already registered.' });
     }
 
-    // Prepare pending record
     const hashed = await bcrypt.hash(password, SALT_ROUNDS);
     const isAdmin = ADMIN_EMAILS.includes(email);
 
@@ -1109,187 +1120,60 @@ app.post('/register', async (req, res) => {
       influencer = await Influencer.findOne({ referralCode }).lean();
     }
 
-    // Upsert pending registration (one per email)
-    await PendingReg.findOneAndUpdate(
-      { email },
-      {
-        email,
-        name,
-        passwordHash: hashed,
-        role: isAdmin ? 'admin' : 'user',
-        influencerId: influencer ? influencer._id : null,
-        referralCode,
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+    const id = await generateUserId();
+    const created = await User.create({
+      id,
+      name,
+      email,
+      password: hashed,
+      role: isAdmin ? 'admin' : 'user',
+      isVerified: true,
+      influencerId: influencer ? influencer._id : null,
+    });
 
-    // OTP email (non-blocking for user creation)
-    const code = await createAndStoreOtp(email);
+    // Cleanup any old OTP/pending artifacts for this email.
+    await Promise.all([
+      PendingReg.deleteMany({ email }),
+      EmailOtp.updateMany({ email, used: false }, { $set: { used: true } }),
+    ]);
 
-    let previewUrl = '';
-    let sendOk = true;
-    try {
-      const subject = 'Verify your RecruiteMee email';
-      const html = `
-        <p>Hi ${name || ''},</p>
-        <p>Your RecruiteMee verification code is:</p>
-        <p style="font-size:24px;font-weight:700;letter-spacing:3px">${code}</p>
-        <p>This code expires in ${Math.round(OTP_TTL_MS / 60000)} minutes.</p>
-        <p>— RecruiteMee Team</p>
-      `;
-      const info = await sendMail({ to: email, subject, html, text: `Your RecruiteMee code: ${code}` });
-      if (info?.previewUrl) previewUrl = info.previewUrl;
-    } catch (mailErr) {
-      sendOk = false;
-      console.warn('[mail register] failed:', mailErr.message);
+    // Credit influencer for registration immediately (OTP flow is disabled).
+    if (created.influencerId) {
+      try {
+        await Influencer.findByIdAndUpdate(created.influencerId, {
+          $inc: { "stats.usersReferred": 1 },
+        });
+      } catch (e) {
+        console.warn('[influencer credit] register usersReferred', e.message);
+      }
     }
 
     return res.status(201).json({
       ok: true,
-      message: sendOk
-        ? 'We sent a 6-digit verification code to your email.'
-        : 'Verification code generated. If you did not receive the email, tap "Resend code".',
-      ...(previewUrl ? { devPreviewUrl: previewUrl } : {}),
-      canResend: !sendOk,
-      retryAfter: RESEND_COOLDOWN_SECONDS
+      message: 'Registration successful. You can log in now.',
     });
   } catch (err) {
+    if (err?.code === 11000) {
+      return res.status(409).json({ ok: false, message: 'Email already registered.' });
+    }
     console.error('POST /register error:', err);
     return res.status(500).json({ ok: false, message: 'Server error' });
   }
 });
 
 
-app.post('/auth/otp/send', async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body.email);
-    if (!email) return res.status(400).json({ ok: false, message: 'Email is required' });
-
-    const user = await User.findOne({ email }).lean();
-    if (!user || user.isVerified) {
-      return res.json({
-        ok: true,
-        message: 'If an account exists, a verification code has been sent.',
-        canResend: false,
-      });
-    }
-
-    const lastOtp = await EmailOtp.findOne({ email }).sort({ createdAt: -1 }).lean();
-    if (lastOtp) {
-      const elapsed = Date.now() - new Date(lastOtp.createdAt).getTime();
-      if (elapsed < RESEND_COOLDOWN_MS) {
-        const retryAfter = Math.ceil((RESEND_COOLDOWN_MS - elapsed) / 1000);
-        return res.json({
-          ok: true,
-          message: `Please wait ${retryAfter}s before requesting another code.`,
-          cooldown: true,
-          retryAfter,
-          canResend: false
-        });
-      }
-    }
-
-    const code = await createAndStoreOtp(email);
-
-    let previewUrl = '';
-    let sendOk = true;
-    try {
-      const subject = 'Your RecruiteMee verification code';
-      const html = `
-        <p>Your RecruiteMee verification code is:</p>
-        <p style="font-size:24px;font-weight:700;letter-spacing:3px">${code}</p>
-        <p>This code expires in ${Math.round(OTP_TTL_MS / 60000)} minutes.</p>
-      `;
-      const info = await sendMail({ to: email, subject, html, text: `Code: ${code}` });
-      if (info?.previewUrl) previewUrl = info.previewUrl;
-    } catch (e) {
-      sendOk = false;
-      console.warn('POST /auth/otp/send mail error:', e.message);
-    }
-
-    return res.json({
-      ok: true,
-      message: sendOk
-        ? 'A new verification code was sent.'
-        : 'Code generated but email could not be sent right now. Try again in a moment.',
-      ...(previewUrl ? { devPreviewUrl: previewUrl } : {}),
-      canResend: !sendOk,
-      cooldown: false,
-      retryAfter: RESEND_COOLDOWN_SECONDS
-    });
-  } catch (e) {
-    console.error('POST /auth/otp/send error:', e);
-    return res.json({
-      ok: true,
-      message: 'If an account exists, a verification code has been sent.',
-      canResend: false,
-    });
-  }
+app.post('/auth/otp/send', async (_req, res) => {
+  return res.status(410).json({
+    ok: false,
+    message: 'OTP verification is temporarily disabled.',
+  });
 });
 
-app.post('/auth/otp/verify', async (req, res) => {
-  try {
-    const email = normalizeEmail(req.body.email);
-    const code = String(req.body.code || '').trim();
-    if (!email || !code) return res.status(400).json({ ok: false, message: 'Email and code are required' });
-
-    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
-    const otp = await EmailOtp.findOne({ email, codeHash, used: false }).sort({ createdAt: -1 });
-
-    if (!otp || (otp.expiresAt && otp.expiresAt < new Date()))
-      return res.status(400).json({ ok: false, message: 'Invalid or expired code' });
-
-    otp.used = true; await otp.save();
-
-    // If user already verified (rare race), just return success
-    const already = await User.findOne({ email, isVerified: true }).lean();
-    if (already) {
-      return res.json({ ok: true, message: 'Email verified. You can log in now.' });
-    }
-
-    // Pull pending registration
-    const pending = await PendingReg.findOne({ email });
-    if (!pending) {
-      // If pending missing but a non-verified user exists from old flow, upgrade it:
-      const legacy = await User.findOne({ email });
-      if (legacy) {
-        legacy.isVerified = true; await legacy.save();
-        return res.json({ ok: true, message: 'Email verified. You can log in now.' });
-      }
-      return res.status(404).json({ ok: false, message: 'Registration not found. Please register again.' });
-    }
-
-    // Create the real user now
-    const id = await generateUserId();
-    const user = await User.create({
-      id,
-      name: pending.name,
-      email: pending.email,
-      password: pending.passwordHash,
-      role: pending.role || 'user',
-      isVerified: true,
-      influencerId: pending.influencerId || null,
-    });
-
-    // Clean up pending document
-    await PendingReg.deleteOne({ _id: pending._id });
-
-    // Credit influencer for **registration count** only after verification
-    if (user.influencerId) {
-      try {
-        await Influencer.findByIdAndUpdate(user.influencerId, {
-          $inc: { "stats.usersReferred": 1 }
-        });
-      } catch (e) {
-        console.warn('[influencer credit] verify usersReferred', e.message);
-      }
-    }
-
-    return res.json({ ok: true, message: 'Email verified. You can log in now.' });
-  } catch (e) {
-    console.error('POST /auth/otp/verify error:', e);
-    return res.status(500).json({ ok: false, message: 'Server error' });
-  }
+app.post('/auth/otp/verify', async (_req, res) => {
+  return res.status(410).json({
+    ok: false,
+    message: 'OTP verification is temporarily disabled.',
+  });
 });
 
 /* ------------------------------- Login ---------------------------------- */
@@ -1304,7 +1188,9 @@ app.post('/login', async (req, res) => {
     if (!user) return res.status(401).json({ ok: false, message: 'Invalid email or password' });
 
     if (!user.isVerified) {
-      return res.status(403).json({ ok: false, message: 'Please verify your email to continue.' });
+      // OTP flow is currently disabled; upgrade legacy accounts on first login.
+      user.isVerified = true;
+      await user.save();
     }
 
     const ok = await bcrypt.compare(password, user.password);
@@ -2515,8 +2401,32 @@ async function bootstrapAdminIfNeeded() {
     console.warn('[bootstrap] admin create failed:', e.message);
   }
 }
-mongoose
-  .connect(MONGO_URI)
+
+async function connectMongo() {
+  const options = {
+    serverSelectionTimeoutMS: Number.isFinite(MONGO_SERVER_SELECTION_TIMEOUT_MS)
+      ? MONGO_SERVER_SELECTION_TIMEOUT_MS
+      : 10000,
+  };
+
+  try {
+    await mongoose.connect(MONGO_URI, options);
+    return;
+  } catch (err) {
+    const canFallback = Boolean(MONGO_URI_FALLBACK) && MONGO_URI_FALLBACK !== MONGO_URI;
+    if (!canFallback) throw err;
+
+    console.warn('[mongo] primary connection failed; trying MONGO_URI_FALLBACK');
+    try {
+      await mongoose.disconnect();
+    } catch (_e) {
+      // ignore disconnect errors before fallback attempt
+    }
+    await mongoose.connect(MONGO_URI_FALLBACK, options);
+  }
+}
+
+connectMongo()
   .then(async () => {
     console.log('MongoDB connected');
     if (USE_GRIDFS) {

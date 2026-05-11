@@ -1,0 +1,57 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: recruitemee-mongo
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "mongodb://localhost:27017/admin", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  backend:
+    build:
+      context: ./Server
+      dockerfile: Dockerfile
+    image: recruitemee-backend:latest
+    container_name: recruitemee-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: 5000
+      MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/recruitemee}
+      MONGO_DNS_SERVERS: ${MONGO_DNS_SERVERS:-}
+      MONGO_URI_FALLBACK: ${MONGO_URI_FALLBACK:-}
+      MONGO_SERVER_SELECTION_TIMEOUT_MS: ${MONGO_SERVER_SELECTION_TIMEOUT_MS:-10000}
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-me}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      CLIENT_ORIGINS: ${CLIENT_ORIGINS:-http://localhost:8080}
+      USE_GRIDFS: ${USE_GRIDFS:-0}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_HOST_PORT:-5000}:5000"
+
+  frontend:
+    build:
+      context: ./Client
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+    image: recruitemee-frontend:latest
+    container_name: recruitemee-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "8080:80"
+
+volumes:
+  mongo-data:

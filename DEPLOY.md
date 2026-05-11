@@ -1,288 +1,150 @@
-# 🚀 Deployment Guide - RecruiteMee v1
+# RecruiteMee CI/CD (Docker Compose + EC2)
 
-Complete guide to deploy the full-stack recruitment platform.
+This project now uses GitHub Actions to:
+1. Build Docker images with `docker compose`
+2. Start the stack and run smoke tests automatically
+3. Deploy to EC2 on `main/master` pushes
 
----
+Workflow file:
+- `.github/workflows/deploy.yml`
 
-## Architecture
-
-- **Frontend:** React + Vite → Vercel
-- **Backend:** Node.js + Express → Render/Railway
-- **Database:** MongoDB Atlas
-- **File Storage:** GridFS or Local uploads
-
----
-
-## Prerequisites
-
-1. [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) account
-2. [Vercel](https://vercel.com) account (frontend)
-3. [Render](https://render.com) account (backend)
-4. Payment gateway keys (optional):
-   - Razorpay account
-   - Stripe account
+Compose file:
+- `docker-compose.yml`
 
 ---
 
-## Step 1: Setup MongoDB Atlas
+## 1) CI Behavior (Automatic)
 
-1. Create free cluster at [MongoDB Atlas](https://cloud.mongodb.com)
-2. Create database user with read/write access
-3. Get connection string:
-   ```
-   mongodb+srv://<username>:<password>@cluster.mongodb.net/recruitemee
-   ```
-4. Whitelist all IPs: `0.0.0.0/0` (or specific Render IPs)
+On every `pull_request` and `push` to `main/master`, GitHub Actions will:
+1. Run `docker compose build --pull`
+2. Run `docker compose up -d --wait --wait-timeout 180`
+3. Smoke test backend: `GET http://localhost:5000/health`
+4. Smoke test frontend: `GET http://localhost:8080`
+5. Always tear down containers with `docker compose down -v --remove-orphans`
+
+This ensures image build + runtime checks are validated before deployment.
 
 ---
 
-## Step 2: Deploy Backend (Render)
+## 2) CD Behavior (Automatic Deploy to EC2)
 
-### Option A: Render Dashboard (Easiest)
+On `push` to `main/master`, after CI passes, workflow deploys to EC2 over SSH.
 
-1. Go to [Render Dashboard](https://dashboard.render.com)
-2. Click **New +** → **Web Service**
-3. Connect GitHub repo: `uppi07/RecruiteMee_v1`
-4. Configure:
-   - **Name:** `recruitemee-backend`
-   - **Root Directory:** `Server`
-   - **Runtime:** Node
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-5. Add environment variables:
-   ```
-   NODE_ENV=production
-   PORT=5000
-   MONGODB_URI=<your-mongodb-uri>
-   JWT_SECRET=<generate-with-openssl-rand-base64-32>
-   FRONTEND_URL=https://your-frontend.vercel.app
-   USE_GRIDFS=1
-   ```
-6. Click **Create Web Service**
-7. Copy your backend URL: `https://recruitemee-backend.onrender.com`
+Remote deploy flow:
+1. Connect to EC2 using SSH key
+2. Ensure `git`, `docker`, and `docker compose` exist
+3. Clone repo (first time) or pull latest branch
+4. Write `.env` on EC2 from GitHub Secrets
+5. Run `docker compose up -d --build --remove-orphans`
+6. Verify backend health endpoint
 
-### Option B: Docker Deployment
+If required secrets are missing, deploy step is skipped.
+
+---
+
+## 3) Required GitHub Secrets
+
+Go to `GitHub Repo -> Settings -> Secrets and variables -> Actions` and set:
+
+Required for deploy:
+- `EC2_HOST` (public IP or DNS)
+- `EC2_USER` (example: `ubuntu`)
+- `EC2_SSH_KEY` (private key content)
+- `MONGO_URI` (example: Atlas URI)
+- `JWT_SECRET`
+- `APP_URL` (frontend public URL)
+- `CLIENT_ORIGINS` (comma-separated allowed origins)
+- `VITE_API_URL` (public backend API base URL)
+
+Optional:
+- `EC2_PORT` (default: `22`)
+- `EC2_DEPLOY_PATH` (default: `/opt/recruitemee`)
+- `USE_GRIDFS` (`0` or `1`, default: `0`)
+- `EC2_REPO_URL` (needed if default repo clone URL is not usable on EC2)
+- `MONGO_DNS_SERVERS` (example: `1.1.1.1,8.8.8.8` for Atlas SRV DNS issues)
+- `MONGO_URI_FALLBACK` (example: `mongodb://127.0.0.1:27017/recruitemee`)
+- `MONGO_SERVER_SELECTION_TIMEOUT_MS` (example: `10000`)
+- `BACKEND_HOST_PORT` (default: `5000`; set `5001` locally if `5000` is in use)
+
+Notes for private repositories:
+- If EC2 cannot clone the repo anonymously, set `EC2_REPO_URL` to an authenticated URL.
+- Example format:
+  - `https://x-access-token:<github_pat>@github.com/<owner>/<repo>.git`
+
+---
+
+## 4) EC2 One-Time Setup
+
+Run these once on EC2:
 
 ```bash
-cd Server
+# Ubuntu example
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl git
 
-# Build
-docker build -t recruitemee-backend .
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+newgrp docker
 
-# Run locally
-docker run -p 5000:5000 \
-  --env-file .env \
-  recruitemee-backend
-
-# Deploy to any Docker host (Railway, Fly.io, AWS, etc.)
+# Verify docker + compose plugin
+docker --version
+docker compose version
 ```
+
+Open security group ports as needed:
+- `22` (SSH)
+- `80`/`443` (frontend, if serving publicly)
+- `5000` (backend, if accessed directly)
 
 ---
 
-## Step 3: Deploy Frontend (Vercel)
-
-### Option A: Vercel Dashboard
-
-1. Go to [Vercel Dashboard](https://vercel.com/new)
-2. Import `uppi07/RecruiteMee_v1`
-3. Configure:
-   - **Framework Preset:** Vite
-   - **Root Directory:** `Client`
-   - **Build Command:** `npm run build`
-   - **Output Directory:** `dist`
-4. Add environment variable:
-   ```
-   VITE_API_URL=https://recruitemee-backend.onrender.com
-   ```
-5. Click **Deploy**
-6. Your frontend is live! `https://recruitemee.vercel.app`
-
-### Option B: Vercel CLI
+## 5) Local Run (Same Compose Stack)
 
 ```bash
-cd Client
+# from repo root
+export MONGO_URI="mongodb+srv://uppiupendra077_db_user:<db_password>@cluster0.67yblz2.mongodb.net/recruitemee?retryWrites=true&w=majority&appName=Cluster0"
+export MONGO_DNS_SERVERS="1.1.1.1,8.8.8.8"
+export MONGO_URI_FALLBACK="mongodb://127.0.0.1:27017/recruitemee"
+export JWT_SECRET="local-dev-secret"
+export APP_URL="http://localhost:8080"
+export CLIENT_ORIGINS="http://localhost:8080"
+export VITE_API_URL="http://localhost:5000"
+export BACKEND_HOST_PORT="5000"
 
-# Install Vercel CLI
-npm i -g vercel
+# start local mongo (recommended for dev fallback)
+docker compose up -d mongo
 
-# Login
-vercel login
+# build and start
+docker compose up -d --build
 
-# Deploy
-vercel
+# verify
+curl -fsS http://localhost:5000/health
+curl -fsS http://localhost:8080
 
-# Add environment variable
-vercel env add VITE_API_URL production
-
-# Deploy to production
-vercel --prod
+# stop
+docker compose down -v
 ```
 
 ---
 
-## Step 4: Configure CORS
+## 6) Service Endpoints
 
-Update backend `FRONTEND_URL` to match your Vercel deployment:
-
-```env
-FRONTEND_URL=https://recruitemee.vercel.app
-```
-
-Redeploy backend after updating.
+With default compose ports:
+- Frontend: `http://localhost:8080`
+- Backend: `http://localhost:5000`
+- MongoDB: internal container network `mongodb://mongo:27017` (not exposed publicly)
 
 ---
 
-## Step 5: Optional - Payment Integration
+## 7) Troubleshooting
 
-### Razorpay
-1. Sign up at [Razorpay](https://razorpay.com)
-2. Get API keys from Dashboard
-3. Add to backend environment:
-   ```
-   RAZORPAY_KEY_ID=rzp_test_...
-   RAZORPAY_SECRET=...
-   ```
+If CI fails on compose startup:
+1. Check `docker compose logs --tail=200`
+2. Confirm backend has valid `MONGO_URI` and `JWT_SECRET`
 
-### Stripe
-1. Sign up at [Stripe](https://stripe.com)
-2. Get API keys
-3. Add to backend:
-   ```
-   STRIPE_SECRET_KEY=sk_test_...
-   STRIPE_PUBLISHABLE_KEY=pk_test_...
-   ```
-
----
-
-## Step 6: Email Configuration (Optional)
-
-For nodemailer (Gmail example):
-
-1. Enable 2-factor auth on Gmail
-2. Generate App Password
-3. Add to backend:
-   ```
-   EMAIL_HOST=smtp.gmail.com
-   EMAIL_PORT=587
-   EMAIL_USER=your-email@gmail.com
-   EMAIL_PASS=your-app-password
-   ```
-
----
-
-## 🧪 Local Development
-
-### Backend
-```bash
-cd Server
-npm install
-cp .env.example .env
-# Edit .env with your values
-npm run dev  # requires nodemon: npm i -D nodemon
-```
-
-### Frontend
-```bash
-cd Client
-npm install
-cp .env.example .env
-# Edit .env with backend URL
-npm run dev
-```
-
-Visit: http://localhost:5173
-
----
-
-## 📊 Post-Deployment Testing
-
-### Test Backend
-```bash
-# Health check
-curl https://recruitemee-backend.onrender.com/health
-
-# Test auth endpoint
-curl -X POST https://recruitemee-backend.onrender.com/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","password":"password"}'
-```
-
-### Test Frontend
-1. Visit your Vercel URL
-2. Check browser console for API errors
-3. Test registration/login flow
-4. Verify file uploads work
-
----
-
-## 🐛 Troubleshooting
-
-### CORS Errors
-- Verify `FRONTEND_URL` matches exactly (no trailing slash)
-- Check Render logs for CORS configuration
-
-### MongoDB Connection Failed
-- Verify connection string format
-- Check IP whitelist in MongoDB Atlas
-- Ensure user has proper permissions
-
-### File Upload Issues
-- If using GridFS: Ensure `USE_GRIDFS=1`
-- If using local storage: Not recommended for Render (ephemeral storage)
-- Consider AWS S3 or Cloudinary for production
-
-### Payment Errors
-- Use test keys during development
-- Verify webhook URLs are configured
-- Check payment gateway logs
-
----
-
-## ✅ Production Checklist
-
-**Backend:**
-- [x] MongoDB Atlas configured
-- [x] Environment variables set
-- [x] CORS configured
-- [x] Dockerfile ready
-- [x] Health check endpoint
-- [ ] Payment gateways configured (optional)
-- [ ] Email service configured (optional)
-- [ ] Error monitoring (Sentry, etc.)
-
-**Frontend:**
-- [x] Vercel configuration
-- [x] API URL environment variable
-- [x] Build optimization
-- [ ] Custom domain (optional)
-- [ ] Analytics (Google Analytics, etc.)
-
----
-
-## 🚀 Going Live
-
-1. ✅ Deploy backend to Render
-2. ✅ Deploy frontend to Vercel
-3. ✅ Update CORS settings
-4. ✅ Test all features
-5. Add custom domain (optional)
-6. Setup monitoring and backups
-7. Load test with realistic traffic
-
----
-
-## 📈 Scaling Tips
-
-- **Database:** MongoDB Atlas has auto-scaling
-- **Backend:** Render can scale vertically (upgrade plan)
-- **Frontend:** Vercel scales automatically
-- **File Storage:** Move to S3/Cloudinary for better performance
-- **Caching:** Add Redis for sessions/caching
-
----
-
-**🎉 Your recruitment platform is live!**
-
-**Live URLs:**
-- Frontend: `https://your-app.vercel.app`
-- Backend: `https://your-backend.onrender.com`
+If EC2 deploy fails:
+1. Verify SSH credentials (`EC2_HOST`, `EC2_USER`, `EC2_SSH_KEY`)
+2. Verify Docker + Compose installed on EC2
+3. Verify EC2 can clone repo (set `EC2_REPO_URL` if private)
+4. Verify required app secrets are present

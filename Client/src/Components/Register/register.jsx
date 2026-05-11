@@ -1,13 +1,11 @@
 // src/Components/Register/register.jsx
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Form, Button, Spinner } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './register.css';
 import { api } from '../../lib/api';
-
-const COOLDOWN_DEFAULT = 45; // fallback if server doesn't send retryAfter
 
 function getCookie(name) {
   const pair = document.cookie.split('; ').find(row => row.startsWith(name + '='));
@@ -20,11 +18,6 @@ function getParam(k) {
 const Register = () => {
   const navigate = useNavigate();
 
-  const [phase, setPhase] = useState('form'); // 'form' | 'otp'
-  const [otpEmail, setOtpEmail] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [previewUrl, setPreviewUrl] = useState('');
-
   const [user, setUser] = useState({ name: '', email: '', password: '', cpassword: '' });
   const [submitting, setSubmitting] = useState(false);
   const [showPass, setShowPass] = useState(false);
@@ -33,30 +26,6 @@ const Register = () => {
 
   const [errMsg, setErrMsg] = useState('');
   const [infoMsg, setInfoMsg] = useState('');
-
-  // resend cooldown
-  const [cooldown, setCooldown] = useState(0);
-  const timerRef = useRef(null);
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      setCooldown((s) => {
-        if (s <= 1) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [cooldown]);
 
   // Capture ?ref to localStorage once
   useEffect(() => {
@@ -78,7 +47,6 @@ const Register = () => {
     e.preventDefault();
     setErrMsg('');
     setInfoMsg('');
-    setPreviewUrl('');
 
     const payload = {
       name: user.name.trim(),
@@ -115,28 +83,18 @@ const Register = () => {
 
     try {
       setSubmitting(true);
-
-      // 🔧 Single, clean call (no duplicate pre-call, no undefined headers)
       const { data } = await api.post('/register', body, headers ? { headers } : undefined);
 
-      // move to OTP step regardless of email send outcome
-      setOtpEmail(payload.email);
-      setPhase('otp');
       setUser({ name: '', email: '', password: '', cpassword: '' });
-
-      if (data?.devPreviewUrl) setPreviewUrl(data.devPreviewUrl);
-      setInfoMsg(
-        data?.canResend
-          ? 'Account created, but email could not be sent automatically — tap “Resend code”.'
-          : (data?.message || 'We sent a 6-digit code to your email.')
-      );
-
-      // start cooldown (server may include retryAfter)
-      const retryAfter = Number(data?.retryAfter || COOLDOWN_DEFAULT);
-      if (!Number.isNaN(retryAfter) && retryAfter > 0) setCooldown(retryAfter);
+      setInfoMsg(data?.message || 'Registration successful. You can log in now.');
+      alert(data?.message || 'Registration successful. You can log in now.');
+      navigate('/login');
     } catch (err) {
       const status = err?.response?.status;
-      const msg = err?.response?.data?.message || 'Registration failed. Try again.';
+      const msg = err?.response?.data?.message ||
+        (err?.message?.toLowerCase().includes('network')
+          ? 'Backend not reachable. Check API URL / server status.'
+          : 'Registration failed. Try again.');
       if (status === 409) {
         alert('Email already registered. Please log in.');
         navigate('/login');
@@ -148,233 +106,121 @@ const Register = () => {
     }
   };
 
-  const onResend = async () => {
-    setErrMsg('');
-    setInfoMsg('');
-    setPreviewUrl('');
-    try {
-      setSubmitting(true);
-      const { data } = await api.post('/auth/otp/send', { email: otpEmail });
-      if (data?.devPreviewUrl) setPreviewUrl(data.devPreviewUrl);
-
-      // server always 200; it may tell us to wait via cooldown=true
-      if (data?.cooldown && data?.retryAfter) {
-        setCooldown(Number(data.retryAfter) || COOLDOWN_DEFAULT);
-      } else if (typeof data?.retryAfter === 'number') {
-        setCooldown(Number(data.retryAfter));
-      } else {
-        setCooldown(COOLDOWN_DEFAULT);
-      }
-
-      setInfoMsg(data?.message || 'Code resent. Check your inbox (and spam).');
-    } catch (e) {
-      const msg =
-        e?.response?.data?.message ||
-        (e?.message?.toLowerCase().includes('network')
-          ? 'Network error. Please check your connection.'
-          : 'Failed to resend code. Try again in a moment.');
-      setErrMsg(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const onVerify = async (e) => {
-    e.preventDefault();
-    setErrMsg('');
-    setInfoMsg('');
-
-    const clean = otpCode.replace(/\D/g, '').trim();
-    if (!clean) {
-      setErrMsg('Enter the 6-digit code.');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      const { data } = await api.post('/auth/otp/verify', { email: otpEmail, code: clean });
-      alert(data?.message || 'Email verified. Please log in.');
-      navigate('/login');
-    } catch (e2) {
-      setErrMsg(e2?.response?.data?.message || 'Verification failed. Try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const resetToForm = () => {
-    setPhase('form');
-    setOtpEmail('');
-    setOtpCode('');
-    setErrMsg('');
-    setInfoMsg('');
-    setPreviewUrl('');
-    setCooldown(0);
-  };
-
   return (
     <div className="reg-page">
       <div className="reg-layout container">
-        {/* Left: Form / OTP */}
         <div className="reg-form-col">
           <div className="soft-card p-4 p-md-5">
             <h1 className="mb-1">RecruiteMee</h1>
-            <p className="text-muted mb-4">
-              {phase === 'form'
-                ? 'Create your account to build ATS-optimized resumes.'
-                : `We emailed a 6-digit code to ${otpEmail}.`}
-            </p>
+            <p className="text-muted mb-4">Create your account to build ATS-optimized resumes.</p>
 
             {errMsg && <div className="alert alert-danger py-2">{errMsg}</div>}
             {infoMsg && <div className="alert alert-info py-2">{infoMsg}</div>}
-            {previewUrl && (
-              <div className="alert alert-secondary py-2">
-                Dev email preview: <a href={previewUrl} target="_blank" rel="noreferrer">Open</a>
-              </div>
-            )}
 
-            {phase === 'form' ? (
-              <Form className="register-form" onSubmit={onRegisterUser} noValidate>
-                <h3 className="h4 mb-3">Register</h3>
+            <Form className="register-form" onSubmit={onRegisterUser} noValidate>
+              <h3 className="h4 mb-3">Register</h3>
 
-                <Form.Group className="mb-3" controlId="formName">
-                  <Form.Label>Name</Form.Label>
+              <Form.Group className="mb-3" controlId="formName">
+                <Form.Label>Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="Enter your name"
+                  name="name"
+                  value={user.name}
+                  onChange={onChange}
+                  required
+                  disabled={submitting}
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formEmail">
+                <Form.Label>Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  placeholder="name@example.com"
+                  name="email"
+                  autoComplete="email"
+                  value={user.email}
+                  onChange={onChange}
+                  required
+                  disabled={submitting}
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="formPassword">
+                <Form.Label>Password</Form.Label>
+                <div className="position-relative">
                   <Form.Control
-                    type="text"
-                    placeholder="Enter your name"
-                    name="name"
-                    value={user.name}
+                    type={showPass ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    name="password"
+                    autoComplete="new-password"
+                    value={user.password}
                     onChange={onChange}
                     required
                     disabled={submitting}
                   />
-                </Form.Group>
-
-                <Form.Group className="mb-3" controlId="formEmail">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control
-                    type="email"
-                    placeholder="name@example.com"
-                    name="email"
-                    autoComplete="email"
-                    value={user.email}
-                    onChange={onChange}
-                    required
-                    disabled={submitting}
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3" controlId="formPassword">
-                  <Form.Label>Password</Form.Label>
-                  <div className="position-relative">
-                    <Form.Control
-                      type={showPass ? 'text' : 'password'}
-                      placeholder="Enter your password"
-                      name="password"
-                      autoComplete="new-password"
-                      value={user.password}
-                      onChange={onChange}
-                      required
-                      disabled={submitting}
-                    />
-                    <button
-                      type="button"
-                      className="toggle-pass"
-                      aria-label={showPass ? 'Hide password' : 'Show password'}
-                      onClick={() => setShowPass((s) => !s)}
-                      disabled={submitting}
-                    >
-                      {showPass ? '🙈' : '👁️'}
-                    </button>
-                  </div>
-                </Form.Group>
-
-                <Form.Group className="mb-2" controlId="formCPassword">
-                  <Form.Label>Confirm Password</Form.Label>
-                  <div className="position-relative">
-                    <Form.Control
-                      type={showCPass ? 'text' : 'password'}
-                      placeholder="Confirm your password"
-                      name="cpassword"
-                      autoComplete="new-password"
-                      value={user.cpassword}
-                      onChange={onChange}
-                      isInvalid={user.cpassword.length > 0 && !passwordsMatch}
-                      required
-                      disabled={submitting}
-                    />
-                    <button
-                      type="button"
-                      className="toggle-pass"
-                      aria-label={showCPass ? 'Hide password' : 'Show password'}
-                      onClick={() => setShowCPass((s) => !s)}
-                      disabled={submitting}
-                    >
-                      {showCPass ? '🙈' : '👁️'}
-                    </button>
-                    <Form.Control.Feedback type="invalid">Passwords do not match.</Form.Control.Feedback>
-                  </div>
-                </Form.Group>
-
-                <div className="d-flex align-items-center gap-2 mb-3">
-                  <input
-                    id="tos"
-                    type="checkbox"
-                    className="form-check-input"
-                    checked={acceptTos}
-                    onChange={(e) => setAcceptTos(e.target.checked)}
-                    disabled={submitting}
-                  />
-                  <label htmlFor="tos" className="form-check-label">
-                    I agree to the <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>
-                  </label>
-                </div>
-
-                <Button variant="primary" type="submit" disabled={submitting} className="w-100 mb-3">
-                  {submitting ? (<><Spinner animation="border" size="sm" className="me-2" /> Creating account…</>) : ('Register')}
-                </Button>
-
-                <div className="text-center small">
-                  Already have an account? <Link to="/login">Login</Link>
-                </div>
-              </Form>
-            ) : (
-              <Form onSubmit={onVerify} noValidate>
-                <h3 className="h4 mb-3">Verify your email</h3>
-                <Form.Group className="mb-3" controlId="formOtp">
-                  <Form.Label>Enter 6-digit code</Form.Label>
-                  <Form.Control
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={6}
-                    placeholder="123456"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                    required
-                    disabled={submitting}
-                  />
-                </Form.Group>
-
-                <Button variant="primary" type="submit" disabled={submitting} className="w-100 mb-2">
-                  {submitting ? (<><Spinner animation="border" size="sm" className="me-2" /> Verifying…</>) : ('Verify & Continue')}
-                </Button>
-
-                <div className="text-center mt-2">
                   <button
                     type="button"
-                    className="btn btn-link"
-                    disabled={submitting || cooldown > 0}
-                    onClick={onResend}
+                    className="toggle-pass"
+                    aria-label={showPass ? 'Hide password' : 'Show password'}
+                    onClick={() => setShowPass((s) => !s)}
+                    disabled={submitting}
                   >
-                    {cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
-                  </button>
-                  <span className="text-muted"> · </span>
-                  <button type="button" className="btn btn-link" disabled={submitting} onClick={resetToForm}>
-                    Change email
+                    {showPass ? '🙈' : '👁️'}
                   </button>
                 </div>
-              </Form>
-            )}
+              </Form.Group>
+
+              <Form.Group className="mb-2" controlId="formCPassword">
+                <Form.Label>Confirm Password</Form.Label>
+                <div className="position-relative">
+                  <Form.Control
+                    type={showCPass ? 'text' : 'password'}
+                    placeholder="Confirm your password"
+                    name="cpassword"
+                    autoComplete="new-password"
+                    value={user.cpassword}
+                    onChange={onChange}
+                    isInvalid={user.cpassword.length > 0 && !passwordsMatch}
+                    required
+                    disabled={submitting}
+                  />
+                  <button
+                    type="button"
+                    className="toggle-pass"
+                    aria-label={showCPass ? 'Hide password' : 'Show password'}
+                    onClick={() => setShowCPass((s) => !s)}
+                    disabled={submitting}
+                  >
+                    {showCPass ? '🙈' : '👁️'}
+                  </button>
+                  <Form.Control.Feedback type="invalid">Passwords do not match.</Form.Control.Feedback>
+                </div>
+              </Form.Group>
+
+              <div className="d-flex align-items-center gap-2 mb-3">
+                <input
+                  id="tos"
+                  type="checkbox"
+                  className="form-check-input"
+                  checked={acceptTos}
+                  onChange={(e) => setAcceptTos(e.target.checked)}
+                  disabled={submitting}
+                />
+                <label htmlFor="tos" className="form-check-label">
+                  I agree to the <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>
+                </label>
+              </div>
+
+              <Button variant="primary" type="submit" disabled={submitting} className="w-100 mb-3">
+                {submitting ? (<><Spinner animation="border" size="sm" className="me-2" /> Creating account…</>) : ('Register')}
+              </Button>
+
+              <div className="text-center small">
+                Already have an account? <Link to="/login">Login</Link>
+              </div>
+            </Form>
           </div>
         </div>
 
@@ -434,7 +280,7 @@ const Register = () => {
             </div>
           </div>
         </div>
-      </div>      
+      </div>
     </div>
   );
 };
