@@ -194,4 +194,17 @@ jobs:
             docker compose down
             docker compose up -d --build --remove-orphans
             docker compose ps
-            curl -fsS http://localhost:5000/health
+            for i in {1..30}; do
+              if curl -fsS http://localhost:5000/health; then
+                echo "Backend is healthy"
+                exit 0
+              fi
+
+              echo "Backend not ready yet... retry $i/30"
+              docker compose ps
+              sleep 5
+            done
+
+            echo "Backend did not become healthy in time"
+            docker compose logs backend --no-color --tail=200
+            exit 1
