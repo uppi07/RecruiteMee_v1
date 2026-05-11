@@ -1261,17 +1261,27 @@ app.post('/forgot', async (req, res) => {
     await ResetToken.create({ userId: user._id, tokenHash, expiresAt });
 
     const { html, text } = resetEmailTemplate({ appUrl: FE_URL, token: tokenPlain });
-    const info = await sendMail({
-      to: user.email,
-      subject: 'Reset your RecruiteMee password',
-      html,
-      text,
-    });
+    const devResetLink = `${FE_URL}/forgot?token=${encodeURIComponent(tokenPlain)}`;
+    let info = null;
+    let mailOk = true;
+
+    try {
+      info = await sendMail({
+        to: user.email,
+        subject: 'Reset your RecruiteMee password',
+        html,
+        text,
+      });
+    } catch (mailErr) {
+      mailOk = false;
+      console.warn('[forgot] sendMail failed:', mailErr.message);
+    }
 
     return res.status(200).json({
       ok: true,
       message: 'If an account exists, a reset link has been sent.',
       ...(info?.previewUrl ? { devPreviewUrl: info.previewUrl } : {}),
+      ...(!mailOk && NODE_ENV !== 'production' ? { devResetLink } : {}),
     });
   } catch (err) {
     console.error('POST /forgot error:', err);

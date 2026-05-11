@@ -6,12 +6,12 @@ const asNum  = (v, d) => {
   return Number.isFinite(n) ? n : d;
 };
 
-const HOST = process.env.SMTP_HOST || '';
-const USER = process.env.SMTP_USER || '';
-const PASS = process.env.SMTP_PASS || '';
+const HOST = process.env.SMTP_HOST || process.env.EMAIL_HOST || '';
+const USER = process.env.SMTP_USER || process.env.EMAIL_USER || '';
+const PASS = process.env.SMTP_PASS || process.env.EMAIL_PASS || '';
 const SECURE = asBool(process.env.SMTP_SECURE || '0');   // accepts "0"/"1" or "false"/"true"
-const PORT = asNum(process.env.SMTP_PORT, SECURE ? 465 : 587);
-const FROM = process.env.MAIL_FROM || USER;
+const PORT = asNum(process.env.SMTP_PORT || process.env.EMAIL_PORT, SECURE ? 465 : 587);
+const FROM = process.env.MAIL_FROM || process.env.EMAIL_FROM || USER;
 
 let transporter = null;
 
@@ -45,4 +45,28 @@ async function sendMail({ to, subject, html, text }) {
   return info;
 }
 
-module.exports = { sendMail };
+function resetEmailTemplate({ appUrl, token }) {
+  const base = String(appUrl || '').replace(/\/+$/, '');
+  const safeBase = base || 'http://localhost:5173';
+  const link = `${safeBase}/forgot?token=${encodeURIComponent(token || '')}`;
+
+  const html = `
+    <p>Hi,</p>
+    <p>We received a request to reset your RecruiteMee password.</p>
+    <p><a href="${link}" target="_blank" rel="noopener noreferrer">Reset Password</a></p>
+    <p>If the button does not work, copy and paste this URL into your browser:</p>
+    <p>${link}</p>
+    <p>This link will expire shortly for security reasons.</p>
+    <p>— RecruiteMee Team</p>
+  `;
+
+  const text = [
+    'We received a request to reset your RecruiteMee password.',
+    `Reset link: ${link}`,
+    'If you did not request this, you can ignore this email.',
+  ].join('\n');
+
+  return { html, text };
+}
+
+module.exports = { sendMail, resetEmailTemplate };
