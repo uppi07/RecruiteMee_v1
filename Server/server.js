@@ -1184,8 +1184,47 @@ app.post('/login', async (req, res) => {
     if (!email || !password)
       return res.status(400).json({ ok: false, message: 'All fields are required' });
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ ok: false, message: 'Invalid email or password' });
+    let user = await User.findOne({ email });
+
+    // Migration compatibility: if user was registered in the old OTP-pending flow,
+    // promote matching PendingReg record into a real verified User on first login.
+    if (!user) {
+      const pending = await PendingReg.findOne({ email });
+      if (!pending) {
+        return res.status(401).json({ ok: false, message: 'Invalid email or password' });
+      }
+
+      const pendingOk = await bcrypt.compare(password, pending.passwordHash);
+      if (!pendingOk) {
+        return res.status(401).json({ ok: false, message: 'Invalid email or password' });
+      }
+
+      const id = await generateUserId();
+      user = await User.create({
+        id,
+        name: pending.name,
+        email: pending.email,
+        password: pending.passwordHash,
+        role: pending.role || 'user',
+        isVerified: true,
+        influencerId: pending.influencerId || null,
+      });
+
+      await Promise.all([
+        PendingReg.deleteOne({ _id: pending._id }),
+        EmailOtp.updateMany({ email, used: false }, { $set: { used: true } }),
+      ]);
+
+      if (user.influencerId) {
+        try {
+          await Influencer.findByIdAndUpdate(user.influencerId, {
+            $inc: { "stats.usersReferred": 1 },
+          });
+        } catch (e) {
+          console.warn('[influencer credit] login migrate usersReferred', e.message);
+        }
+      }
+    }
 
     if (!user.isVerified) {
       // OTP flow is currently disabled; upgrade legacy accounts on first login.

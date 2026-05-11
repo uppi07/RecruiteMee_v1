@@ -45,7 +45,10 @@ const Login = () => {
       console.log(data.message || 'Login successful');
     navigate('/home', { replace: true });
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Login failed. Please check your credentials.';
+      const msg = err?.response?.data?.message ||
+        (err?.message?.toLowerCase().includes('network')
+          ? 'Backend not reachable. Check API URL / server status.'
+          : 'Login failed. Please check your credentials.');
       setErrMsg(msg);
     } finally {
       setSubmitting(false);
