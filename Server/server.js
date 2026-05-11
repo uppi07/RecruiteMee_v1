@@ -89,6 +89,11 @@ const {
   OTP_TTL_MINUTES = '10',
   ADMIN_BOOTSTRAP_PASSWORD = 'changeme123!',
   APP_URL = 'http://localhost:5173',
+  DEFAULT_LOGIN_ENABLED = '1',
+  DEFAULT_LOGIN_USERNAME = '1',
+  DEFAULT_LOGIN_PASSWORD = '0',
+  DEFAULT_LOGIN_EMAIL = 'default.user@recruitemee.local',
+  DEFAULT_LOGIN_NAME = 'Default User',
 
   // Razorpay
   RAZORPAY_KEY_ID = '',
@@ -118,6 +123,8 @@ if (!JWT_SECRET) {
 const SALT_ROUNDS = Number(BCRYPT_ROUNDS) || 10;
 const RESET_TTL_MS = (Number(RESET_TOKEN_TTL_MINUTES) || 60) * 60 * 1000;
 const OTP_TTL_MS = (Number(OTP_TTL_MINUTES) || 10) * 60 * 1000;
+const DEFAULT_LOGIN_IS_ENABLED = ['1', 'true', 'yes', 'on']
+  .includes(String(DEFAULT_LOGIN_ENABLED || '').trim().toLowerCase());
 const RESEND_COOLDOWN_SECONDS = Number(process.env.OTP_RESEND_COOLDOWN_SECONDS || 45);
 const RESEND_COOLDOWN_MS = RESEND_COOLDOWN_SECONDS * 1000;
 const INF_REVIEW_BONUS = Number(process.env.INFLUENCER_REVIEW_BONUS || 50);
@@ -416,6 +423,7 @@ const safeUser = (u) =>
         _id: u._id,
         id: u.id,
         name: u.name,
+        username: u.username,
         email: u.email,
         role: u.role,
         isVerified: !!u.isVerified,
@@ -594,6 +602,7 @@ const UserSchema = new mongoose.Schema(
   {
     id: { type: String, required: true, unique: true, index: true },
     name: { type: String, required: true },
+    username: { type: String, unique: true, sparse: true, index: true, lowercase: true, trim: true },
     email: { type: String, required: true, unique: true, index: true, lowercase: true },
     password: { type: String, required: true },
     role: { type: String, enum: ['user', 'admin'], default: 'user', index: true },
@@ -1179,24 +1188,29 @@ app.post('/auth/otp/verify', async (_req, res) => {
 /* ------------------------------- Login ---------------------------------- */
 app.post('/login', async (req, res) => {
   try {
-    const email = normalizeEmail(req.body.email);
+    const loginId = normalizeEmail(req.body.username || req.body.email);
     const { password } = req.body;
-    if (!email || !password)
+    if (!loginId || !password)
       return res.status(400).json({ ok: false, message: 'All fields are required' });
 
-    let user = await User.findOne({ email });
+    let user = await User.findOne({
+      $or: [
+        { email: loginId },
+        { username: loginId },
+      ],
+    });
 
     // Migration compatibility: if user was registered in the old OTP-pending flow,
     // promote matching PendingReg record into a real verified User on first login.
     if (!user) {
-      const pending = await PendingReg.findOne({ email });
+      const pending = await PendingReg.findOne({ email: loginId });
       if (!pending) {
-        return res.status(401).json({ ok: false, message: 'Invalid email or password' });
+        return res.status(401).json({ ok: false, message: 'Invalid username/email or password' });
       }
 
       const pendingOk = await bcrypt.compare(password, pending.passwordHash);
       if (!pendingOk) {
-        return res.status(401).json({ ok: false, message: 'Invalid email or password' });
+        return res.status(401).json({ ok: false, message: 'Invalid username/email or password' });
       }
 
       const id = await generateUserId();
@@ -1212,7 +1226,7 @@ app.post('/login', async (req, res) => {
 
       await Promise.all([
         PendingReg.deleteOne({ _id: pending._id }),
-        EmailOtp.updateMany({ email, used: false }, { $set: { used: true } }),
+        EmailOtp.updateMany({ email: loginId, used: false }, { $set: { used: true } }),
       ]);
 
       if (user.influencerId) {
@@ -1233,7 +1247,7 @@ app.post('/login', async (req, res) => {
     }
 
     const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ ok: false, message: 'Invalid email or password' });
+    if (!ok) return res.status(401).json({ ok: false, message: 'Invalid username/email or password' });
 
     const token = signJwt({ email: user.email, id: user.id, role: user.role }, '2h');
     return res.status(200).json({ ok: true, message: 'Login successful', token, user: safeUser(user) });
@@ -2451,6 +2465,64 @@ async function bootstrapAdminIfNeeded() {
   }
 }
 
+async function bootstrapDefaultLoginIfNeeded() {
+  if (!DEFAULT_LOGIN_IS_ENABLED) return;
+  try {
+    const username = normalizeEmail(DEFAULT_LOGIN_USERNAME);
+    const passwordPlain = String(DEFAULT_LOGIN_PASSWORD || '');
+    const displayName = String(DEFAULT_LOGIN_NAME || '').trim() || 'Default User';
+    const email = normalizeEmail(DEFAULT_LOGIN_EMAIL) || `${username}@recruitemee.local`;
+
+    if (!username || !passwordPlain) {
+      console.warn('[bootstrap] default login skipped: missing username/password');
+      return;
+    }
+
+    let user = await User.findOne({ username });
+    if (!user) {
+      user = await User.findOne({ email });
+    }
+
+    const hashed = await bcrypt.hash(passwordPlain, SALT_ROUNDS);
+
+    if (!user) {
+      const id = await generateUserId();
+      await User.create({
+        id,
+        name: displayName,
+        username,
+        email,
+        password: hashed,
+        role: 'user',
+        isVerified: true,
+      });
+      console.log(`[bootstrap] Default login created: username=${username}`);
+      return;
+    }
+
+    let changed = false;
+    if (user.username !== username) {
+      user.username = username;
+      changed = true;
+    }
+    if (!user.isVerified) {
+      user.isVerified = true;
+      changed = true;
+    }
+
+    // Keep credential deterministic for support/testing when this flag is enabled.
+    user.password = hashed;
+    changed = true;
+
+    if (changed) {
+      await user.save();
+    }
+    console.log(`[bootstrap] Default login ready: username=${username}`);
+  } catch (e) {
+    console.warn('[bootstrap] default login create/update failed:', e.message);
+  }
+}
+
 async function connectMongo() {
   const options = {
     serverSelectionTimeoutMS: Number.isFinite(MONGO_SERVER_SELECTION_TIMEOUT_MS)
@@ -2483,6 +2555,7 @@ connectMongo()
       console.log('[gridfs] ready');
     }
     await bootstrapAdminIfNeeded();
+    await bootstrapDefaultLoginIfNeeded();
     app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
   })
   .catch((err) => {

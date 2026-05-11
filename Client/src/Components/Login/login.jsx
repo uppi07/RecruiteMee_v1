@@ -7,7 +7,7 @@ import './login.css';
 import { api } from '../../lib/api';
 
 const Login = () => {
-  const [user, setUser] = useState({ email: '', password: '' });
+  const [user, setUser] = useState({ identifier: '', password: '' });
   const [submitting, setSubmitting] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [errMsg, setErrMsg] = useState('');
@@ -17,13 +17,15 @@ const Login = () => {
     e.preventDefault();
     setErrMsg('');
 
+    const identifier = user.identifier.trim().toLowerCase();
     const payload = {
-      email: user.email.trim().toLowerCase(),
+      email: identifier,
+      username: identifier,
       password: user.password,
     };
 
-    if (!payload.email || !payload.password) {
-      setErrMsg('Please enter email and password');
+    if (!identifier || !payload.password) {
+      setErrMsg('Please enter username/email and password');
       return;
     }
 
@@ -40,7 +42,7 @@ const Login = () => {
       };
       sessionStorage.setItem('user', JSON.stringify(minimalUser));
 
-      setUser({ email: '', password: '' });
+      setUser({ identifier: '', password: '' });
 
       console.log(data.message || 'Login successful');
     navigate('/home', { replace: true });
@@ -78,14 +80,14 @@ const Login = () => {
             <Form className="register-form" onSubmit={onLogUser} noValidate>
               <h3 className="h4 mb-3">Login</h3>
 
-              <Form.Group className="mb-3" controlId="formEmail">
-                <Form.Label>Email</Form.Label>
+              <Form.Group className="mb-3" controlId="formIdentifier">
+                <Form.Label>Email or Username</Form.Label>
                 <Form.Control
-                  type="email"
-                  placeholder="name@example.com"
-                  name="email"
-                  autoComplete="email"
-                  value={user.email}
+                  type="text"
+                  placeholder="name@example.com or username"
+                  name="identifier"
+                  autoComplete="username"
+                  value={user.identifier}
                   onChange={onChange}
                   required
                 />
