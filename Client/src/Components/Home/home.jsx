@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useMemo, useState, useEffect, useRef } from "react";
 import Nav from "../Navbar/nav";
 import { api } from "../../lib/api";
+import { AUTH_DISABLED, PAYMENTS_DISABLED, OPEN_MODE } from "../../lib/featureFlags";
 import "./home.css";
 
 // helper for static template path
@@ -87,7 +88,7 @@ export default function Home() {
   const location = useLocation();
 
   const token = sessionStorage.getItem("token");
-  const authed = !!token;
+  const authed = AUTH_DISABLED ? true : !!token;
 
   const sessionUser = useMemo(() => {
     try {
@@ -148,16 +149,23 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    if (PAYMENTS_DISABLED) return;
     if (openParam === "resume_rewrite") setShowRewrite(true);
     if (openParam === "resume_review") setShowReview(true);
   }, [openParam]);
 
   const goLogin = (next = "/home") =>
-    navigate(`/login?next=${encodeURIComponent(next)}`);
+    AUTH_DISABLED
+      ? navigate("/home")
+      : navigate(`/login?next=${encodeURIComponent(next)}`);
 
   const goTo = (target) => (authed ? navigate(target) : goLogin(target));
 
   const openServiceModal = (serviceKey) => {
+    if (PAYMENTS_DISABLED) {
+      alert("Payments and bookings are temporarily disabled.");
+      return;
+    }
     if (!authed) {
       const next = `/home?open=${encodeURIComponent(serviceKey)}`;
       return goLogin(next);
@@ -184,6 +192,7 @@ export default function Home() {
 
   /* ---- SUBMIT ---- */
   const submitRewrite = async () => {
+    if (PAYMENTS_DISABLED) return alert("Payments and bookings are temporarily disabled.");
     if (!authed) return goLogin("/home?open=resume_rewrite");
     if (!rewriteFile) return alert("Please upload a PDF/DOC/DOCX");
 
@@ -209,6 +218,7 @@ export default function Home() {
   };
 
   const submitResumeReview = async () => {
+    if (PAYMENTS_DISABLED) return alert("Payments and bookings are temporarily disabled.");
     if (!authed) return goLogin("/home?open=resume_review");
     if (!reviewFile) return alert("Please upload a PDF/DOC/DOCX");
 
@@ -285,13 +295,22 @@ export default function Home() {
             <div className="d-flex justify-content-center gap-2 flex-wrap">
               <button
                 className="btn btn-primary px-4"
-                onClick={() => (authed ? navigate("/createresume") : navigate("/login"))}
+                onClick={() => {
+                  if (OPEN_MODE) return alert("Auth and payments are temporarily disabled.");
+                  return authed ? navigate("/createresume") : navigate("/login");
+                }}
               >
                 Create Resume
               </button>
-              <Link to="/orders" className="btn btn-outline-light px-4">
-                <span className="text-white">View Orders</span>
-              </Link>
+              {OPEN_MODE ? (
+                <button type="button" className="btn btn-outline-light px-4" onClick={() => navigate("/about")}>
+                  <span className="text-white">Learn More</span>
+                </button>
+              ) : (
+                <Link to="/orders" className="btn btn-outline-light px-4">
+                  <span className="text-white">View Orders</span>
+                </Link>
+              )}
             </div>
           </div>
         </header>
@@ -335,8 +354,9 @@ export default function Home() {
                 type="button"
                 onClick={() => openServiceModal("resume_rewrite")}
                 className="btn btn-primary rounded-pill px-4 header-cta"
+                disabled={PAYMENTS_DISABLED}
               >
-                {authed ? "Book a Service" : "Sign in to Book"}
+                {PAYMENTS_DISABLED ? "Services Paused" : authed ? "Book a Service" : "Sign in to Book"}
               </button>
             </div>
 
@@ -347,7 +367,7 @@ export default function Home() {
                     className={`card service-card h-100 border-0 shadow-sm ${s.comingSoon ? "" : "clickable"}`}
                     role={s.comingSoon ? "article" : "button"}
                     tabIndex={s.comingSoon ? -1 : 0}
-                    onClick={() => !s.comingSoon && openServiceModal(s.key)}
+                    onClick={() => !s.comingSoon && !PAYMENTS_DISABLED && openServiceModal(s.key)}
                   >
                     <div className="card-body">
                       <div className="d-flex align-items-start justify-content-between">
@@ -364,9 +384,9 @@ export default function Home() {
                           type="button"
                           onClick={(e) => { e.stopPropagation(); openServiceModal(s.key); }}
                           className="btn btn-outline-primary btn-sm rounded-pill px-3"
-                          disabled={!!s.comingSoon}
+                          disabled={!!s.comingSoon || PAYMENTS_DISABLED}
                         >
-                          {s.comingSoon ? "Coming soon" : authed ? "Get Started" : "Sign in"}
+                          {s.comingSoon ? "Coming soon" : PAYMENTS_DISABLED ? "Paused" : authed ? "Get Started" : "Sign in"}
                         </button>
                       </div>
                     </div>

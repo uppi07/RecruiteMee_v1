@@ -1,6 +1,7 @@
 // Client/src/Components/Navbar/nav.jsx
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getSessionUser } from '../../lib/session';
+import { OPEN_MODE, PAYMENTS_DISABLED } from '../../lib/featureFlags';
 import './nav.css';
 
 const Nav = () => {
@@ -27,9 +28,12 @@ const Nav = () => {
     { path: '/checkout', label: 'Checkout' },
     { path: '/orders', label: 'Orders' },
     { path: '/profile', label: 'Profile' },
-  ];
+  ].filter((item) => {
+    if (!PAYMENTS_DISABLED) return true;
+    return !['/pricing', '/checkout', '/orders'].includes(item.path);
+  });
 
-  const links = [...common, ...(authed ? authedOnly : [])];
+  const links = OPEN_MODE ? common : [...common, ...(authed ? authedOnly : [])];
 
   return (
     <nav className="navbar navbar-expand-md navbar-dark bg-gradient w-100 shadow-sm sticky-top">
@@ -68,13 +72,13 @@ const Nav = () => {
               );
             })}
 
-            {u?.role === 'admin' && authed && (
+            {!OPEN_MODE && u?.role === 'admin' && authed && (
               <li className="nav-item">
                 <a className="nav-link" href="/admin">Admin</a>
               </li>
             )}
 
-            {authed ? (
+            {OPEN_MODE ? null : authed ? (
               <li className="nav-item mt-2 mt-md-0">
                 <button className="btn btn-outline-light ms-md-2 rounded-pill nav-btn" type="button" onClick={onLogOut}>
                   <span className="text-white">Logout</span>

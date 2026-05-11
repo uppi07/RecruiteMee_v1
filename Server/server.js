@@ -89,6 +89,7 @@ const {
   OTP_TTL_MINUTES = '10',
   ADMIN_BOOTSTRAP_PASSWORD = 'changeme123!',
   APP_URL = 'http://localhost:5173',
+  PAYMENTS_DISABLED = '1',
   DEFAULT_LOGIN_ENABLED = '1',
   DEFAULT_LOGIN_USERNAME = '1',
   DEFAULT_LOGIN_PASSWORD = '0',
@@ -125,6 +126,8 @@ const RESET_TTL_MS = (Number(RESET_TOKEN_TTL_MINUTES) || 60) * 60 * 1000;
 const OTP_TTL_MS = (Number(OTP_TTL_MINUTES) || 10) * 60 * 1000;
 const DEFAULT_LOGIN_IS_ENABLED = ['1', 'true', 'yes', 'on']
   .includes(String(DEFAULT_LOGIN_ENABLED || '').trim().toLowerCase());
+const PAYMENTS_ARE_DISABLED = ['1', 'true', 'yes', 'on']
+  .includes(String(PAYMENTS_DISABLED || '').trim().toLowerCase());
 const RESEND_COOLDOWN_SECONDS = Number(process.env.OTP_RESEND_COOLDOWN_SECONDS || 45);
 const RESEND_COOLDOWN_MS = RESEND_COOLDOWN_SECONDS * 1000;
 const INF_REVIEW_BONUS = Number(process.env.INFLUENCER_REVIEW_BONUS || 50);
@@ -234,6 +237,7 @@ app.get(['/ref/:code', '/ref-:code'], (req, res) => {
 if (RAZORPAY_WEBHOOK_SECRET) {
   app.post('/payments/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
     try {
+      if (PAYMENTS_ARE_DISABLED) return paymentsDisabled(res);
       const signature = req.headers['x-razorpay-signature'];
       if (!signature) return res.status(400).send('Missing signature');
 
@@ -431,6 +435,12 @@ const safeUser = (u) =>
         updatedAt: u.updatedAt,
       }
     : null;
+
+const paymentsDisabled = (res) =>
+  res.status(503).json({
+    ok: false,
+    message: 'Payments are temporarily disabled. Please try again later.',
+  });
 
 // Referral extractor 👇 NEW
 function getReferralCode(req) {
@@ -1338,6 +1348,7 @@ app.post('/forgot/reset', async (req, res) => {
 // Save resume form → seed "resume_build" order + auto summary file
 app.post('/resume', auth, async (req, res) => {
   try {
+    if (PAYMENTS_ARE_DISABLED) return paymentsDisabled(res);
     const data = req.body || {};
     const ownerEmail = normalizeEmail(req.user?.email);
     if (!ownerEmail) return res.status(401).json({ ok: false, message: 'Unauthorized' });
@@ -1508,6 +1519,7 @@ app.post('/resume', auth, async (req, res) => {
 // Create a service order (review/rewrite/build/linkedin) + upload
 app.post('/orders/service', auth, upload.single('file'), async (req, res) => {
   try {
+    if (PAYMENTS_ARE_DISABLED) return paymentsDisabled(res);
     const ownerEmail = normalizeEmail(req.user?.email);
     if (!ownerEmail) return res.status(401).json({ ok: false, message: 'Unauthorized' });
 
@@ -1831,6 +1843,7 @@ app.delete('/orders/:orderId', auth, async (req, res) => {
 /* -------------------------- Payments (Razorpay) --------------------------- */
 app.post('/payments/checkout', auth, async (req, res) => {
   try {
+    if (PAYMENTS_ARE_DISABLED) return paymentsDisabled(res);
     const { orderId } = req.body || {};
     if (!orderId) return res.status(400).json({ ok: false, message: 'orderId required' });
     const order = await Order.findOne({ orderId });
@@ -1878,6 +1891,7 @@ app.post('/payments/checkout', auth, async (req, res) => {
 
 app.post('/payments/verify', auth, async (req, res) => {
   try {
+    if (PAYMENTS_ARE_DISABLED) return paymentsDisabled(res);
     if (!razorpay) return res.status(500).json({ ok: false, message: 'Razorpay not configured' });
     const { orderId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body || {};
     if (!orderId || !razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {

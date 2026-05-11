@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import InfluencerGuide from "./InfluencerGuide.jsx";
 import Maintenance from "./Maintenance.jsx";
 import NotFound from "./NotFound.jsx";
@@ -45,6 +45,7 @@ import InfluencerPayouts from "./Components/Influencer/InfluencerPayouts.jsx";
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
+import { OPEN_MODE } from './lib/featureFlags';
 
 // 🔧 maintenance flag (build-time via Vite)
 const MAINTENANCE =
@@ -60,6 +61,40 @@ const App = () => {
           <Route path="/maintenance" element={<Maintenance />} />
           <Route path="*" element={<Maintenance />} />
         </Routes>
+        <Footer />
+      </>
+    );
+  }
+
+  if (OPEN_MODE) {
+    return (
+      <>
+        <Routes>
+          <Route path="/influencer-kit" element={<InfluencerGuide />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/refund" element={<Refund />} />
+          <Route path="/disclaimer" element={<Disclaimer />} />
+
+          {/* Temporarily disabled routes */}
+          <Route path="/login" element={<Navigate to="/home" replace />} />
+          <Route path="/register" element={<Navigate to="/home" replace />} />
+          <Route path="/forgot" element={<Navigate to="/home" replace />} />
+          <Route path="/createresume" element={<Navigate to="/home" replace />} />
+          <Route path="/pricing" element={<Navigate to="/home" replace />} />
+          <Route path="/checkout" element={<Navigate to="/home" replace />} />
+          <Route path="/profile" element={<Navigate to="/home" replace />} />
+          <Route path="/orders" element={<Navigate to="/home" replace />} />
+          <Route path="/admin/*" element={<Navigate to="/home" replace />} />
+          <Route path="/influencer/*" element={<Navigate to="/home" replace />} />
+
+          <Route path="*" element={<Navigate to="/home" replace />} />
+        </Routes>
+
         <Footer />
       </>
     );

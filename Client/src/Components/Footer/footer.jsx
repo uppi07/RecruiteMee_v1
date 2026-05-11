@@ -1,5 +1,6 @@
 // Client/src/Components/Footer/footer.jsx
 import { Link } from "react-router-dom";
+import { OPEN_MODE, PAYMENTS_DISABLED } from "../../lib/featureFlags";
 import "./footer.css";
 
 export default function Footer() {
@@ -26,10 +27,14 @@ export default function Footer() {
             <h6 className="mb-2 text-center text-md-start">Quick Links</h6>
             <ul className="list-unstyled footer-list">
               <li><Link to="/">Home</Link></li>
-              <li><Link to="/createresume">Create Resume</Link></li>
-              <li><Link to="/orders">Orders</Link></li>
-              <li><Link to="/profile">Profile</Link></li>
-              <li><Link to="/pricing">Pricing</Link></li>
+              {OPEN_MODE ? null : (
+                <>
+                  <li><Link to="/createresume">Create Resume</Link></li>
+                  {!PAYMENTS_DISABLED && <li><Link to="/orders">Orders</Link></li>}
+                  <li><Link to="/profile">Profile</Link></li>
+                  {!PAYMENTS_DISABLED && <li><Link to="/pricing">Pricing</Link></li>}
+                </>
+              )}
             </ul>
           </div>
 
