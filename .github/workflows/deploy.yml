@@ -191,6 +191,7 @@ jobs:
               fi
             } > .env
 
+            docker compose down
             docker compose up -d --build --remove-orphans
             docker compose ps
             curl -fsS http://localhost:5000/health
